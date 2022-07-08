@@ -1,0 +1,17 @@
+.idea
+.vscode
+.eclipse
+
+.env
+
+config.yml
+config.toml
+
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+*.test
+*.out
