@@ -14,12 +14,16 @@ func NewResponse[T any](success bool, message string, data *T) *Response[T] {
 	}
 }
 
-func NewSuccess[T any](data T) *Response[T] {
-	return NewResponse[T](true, "", &data)
+func NewSuccess[T any](message string, data T) *Response[T] {
+	return NewResponse[T](true, message, &data)
 }
 
-func NewSuccessNil() *Response[any] {
-	return NewResponse[any](true, "", nil)
+func NewSuccessMessage[T any](message string) *Response[T] {
+	return NewResponse[T](true, message, nil)
+}
+
+func NewSuccessData[T any](data T) *Response[T] {
+	return NewResponse[T](true, "", &data)
 }
 
 func NewError[T any](message string, data T) *Response[T] {
@@ -28,4 +32,8 @@ func NewError[T any](message string, data T) *Response[T] {
 
 func NewErrorMessage(message string) *Response[any] {
 	return NewResponse[any](false, message, nil)
+}
+
+func NewErrorData[T any](data T) *Response[T] {
+	return NewResponse[T](false, "", &data)
 }
