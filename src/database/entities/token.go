@@ -1,4 +1,4 @@
-package types
+package entities
 
 // Token represents an administrator API token used to authenticate for privileged actions.
 type Token struct {

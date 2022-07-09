@@ -1,4 +1,4 @@
-package types
+package entities
 
 // DropRequest is a request for a file or set of handlers to be dropped into a private directory.
 type DropRequest struct {

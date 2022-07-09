@@ -1,4 +1,4 @@
-package types
+package entities
 
 type AccessStatus int8
 
