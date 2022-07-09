@@ -1,0 +1,3 @@
+package database
+
+func getDatabase()
