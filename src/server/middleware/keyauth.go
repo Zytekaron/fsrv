@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fsrv/src/database"
 	"fsrv/src/types/response"
 	"fsrv/utils/syncrl"
@@ -35,7 +36,10 @@ func KeyAuth(keys database.KeyController) gin.HandlerFunc {
 			return
 		}
 
-		key, err := keys.Get(auth)
+		c, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
+
+		key, err := keys.Get(c, auth)
 		if err != nil {
 			if err == database.ErrNoDocuments {
 				// only draw from the bucket when the authentication fails

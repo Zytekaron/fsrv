@@ -1,8 +1,9 @@
 package middleware
 
 import (
+	"context"
 	"fsrv/src/database"
-	"fsrv/src/types"
+	"fsrv/src/database/entities"
 	"fsrv/src/types/response"
 	"fsrv/utils/syncrl"
 	"github.com/gin-gonic/gin"
@@ -18,7 +19,7 @@ func RateLimit(rateLimits database.RateLimitController) gin.HandlerFunc {
 	rl.Purger(rateLimitPurgeInterval)
 
 	return func(ctx *gin.Context) {
-		key := ctx.MustGet("key").(*types.Key)
+		key := ctx.MustGet("key").(*entities.Key)
 		level := key.RateLimit
 		if level == "" {
 			ctx.Next()
@@ -27,7 +28,10 @@ func RateLimit(rateLimits database.RateLimitController) gin.HandlerFunc {
 
 		manager, ok := rl.GetManager(level)
 		if !ok {
-			data, err := rateLimits.Get(level)
+			c, cancel := context.WithTimeout(ctx, 10*time.Second)
+			defer cancel()
+
+			data, err := rateLimits.Get(c, level)
 			if err != nil {
 				log.Printf("error loading rate limit information for level '%s': %s\n", level, err)
 				ctx.AbortWithStatusJSON(500, response.InternalServerError)
@@ -35,7 +39,6 @@ func RateLimit(rateLimits database.RateLimitController) gin.HandlerFunc {
 			}
 
 			manager = syncrl.NewManager(data.Limit, time.Duration(data.Reset))
-			go manager.Purge()
 			rl.AddManager(level, manager)
 		}
 
