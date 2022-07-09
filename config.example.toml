@@ -1,0 +1,12 @@
+[server]
+user = 'root'
+port = 1337
+
+[database]
+path = './database'
+version = 1
+
+[file_manager]
+path = './files'
+max_depth = 32
+
