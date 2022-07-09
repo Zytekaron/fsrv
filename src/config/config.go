@@ -9,17 +9,24 @@ import (
 var ErrNoConfigs = errors.New("no configuration file found")
 
 type Config struct {
-	Server   *Server   `toml:"server"`
-	Database *Database `toml:"database"`
+	Server      *Server      `toml:"server"`
+	Database    *Database    `toml:"database"`
+	FileManager *FileManager `toml:"file_manager"`
 }
 
 type Server struct {
-	Port int16 `toml:"port"`
+	User string `toml:"user"`
+	Port int16  `toml:"port"`
 }
 
 type Database struct {
 	Path    string `toml:"path"`
 	Version int    `toml:"version"`
+}
+
+type FileManager struct {
+	Path     string `toml:"path"`
+	MaxDepth int    `toml:"max_depth"`
 }
 
 func Load(paths []string) (*Config, error) {
