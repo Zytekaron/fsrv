@@ -9,4 +9,3 @@ version = 1
 [file_manager]
 path = './files'
 max_depth = 32
-
