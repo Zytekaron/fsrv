@@ -11,6 +11,8 @@ type Key struct {
 	ID string `json:"id"`
 	// Comment is used to note the owner or usage of a token.
 	Comment string `json:"comment"`
+	// RateLimit is the rate limit level of this token
+	RateLimit string `json:"rate_limit"`
 	// Roles are the roles this token has.
 	Roles []string `json:"roles"`
 	// ExpiresAt is the time when this token expires.

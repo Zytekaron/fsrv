@@ -10,14 +10,16 @@ const (
 
 // Permission represents an access specifier for a file or directory.
 type Permission struct {
+	// ID is the id of this permission
+	ID int `json:"id"`
 	// Public represents whether this permission should allow all access attempts.
 	Public bool `json:"public"`
 	// ReadKeys represents tokens which may be allowed or denied access to read.
 	ReadKeys map[string]AccessStatus `json:"read_keys"`
-	// ReadRoles represents roles which may be allowed or denied access to read.
-	ReadRoles map[string]AccessStatus `json:"read_roles"`
 	// WriteKeys represents tokens which may be allowed or denied access to write.
 	WriteKeys map[string]AccessStatus `json:"write_keys"`
+	// ReadRoles represents roles which may be allowed or denied access to read.
+	ReadRoles map[string]AccessStatus `json:"read_roles"`
 	// WriteRoles represents roles which may be allowed or denied access to write.
 	WriteRoles map[string]AccessStatus `json:"write_roles"`
 }
