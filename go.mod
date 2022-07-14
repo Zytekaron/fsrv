@@ -3,16 +3,11 @@ module fsrv
 go 1.18
 
 require (
-	github.com/mattn/go-sqlite3 v1.14.14
-	github.com/sirupsen/logrus v1.8.1
-)
-
-require golang.org/x/sys v0.0.0-20191026070338-33540a1f6037 // indirect
-
-require (
 	github.com/gin-gonic/gin v1.8.1
+	github.com/mattn/go-sqlite3 v1.14.14
 	github.com/pelletier/go-toml v1.9.5
-	github.com/zytekaron/gotil/v2 v2.1.0
+	github.com/zytekaron/gotil/v2 v2.2.2
+	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
 )
 
 require (
@@ -29,9 +24,8 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.1 // indirect
 	github.com/ugorji/go/codec v1.2.7 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
-	golang.org/x/exp v0.0.0-20220309173658-cbeff96c734a // indirect
+	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983 // indirect
 	golang.org/x/net v0.0.0-20210226172049-e18ecbb05110 // indirect
-	golang.org/x/sys v0.0.0-20211019181941-9d821ace8654 // indirect
 	golang.org/x/text v0.3.6 // indirect
 	google.golang.org/protobuf v1.28.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
