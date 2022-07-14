@@ -5,8 +5,10 @@ import (
 	"fsrv/src/database"
 	"fsrv/src/database/entities"
 	"fsrv/src/types/response"
+	"fsrv/utils"
 	"fsrv/utils/syncrl"
 	"github.com/gin-gonic/gin"
+	"github.com/zytekaron/gotil/v2/rl"
 	"log"
 	"time"
 )
@@ -15,8 +17,8 @@ const rateLimitPurgeInterval = 10 * time.Minute
 
 // RateLimit applies key-based rate limiting.
 func RateLimit(rateLimits database.RateLimitController) gin.HandlerFunc {
-	rl := syncrl.New()
-	rl.Purger(rateLimitPurgeInterval)
+	suite := syncrl.New()
+	utils.Executor(rateLimitPurgeInterval, suite.Purge)
 
 	return func(ctx *gin.Context) {
 		key := ctx.MustGet("key").(*entities.Key)
@@ -26,7 +28,7 @@ func RateLimit(rateLimits database.RateLimitController) gin.HandlerFunc {
 			return
 		}
 
-		manager, ok := rl.GetManager(level)
+		bm, ok := suite.Get(level)
 		if !ok {
 			c, cancel := context.WithTimeout(ctx, 10*time.Second)
 			defer cancel()
@@ -38,12 +40,12 @@ func RateLimit(rateLimits database.RateLimitController) gin.HandlerFunc {
 				return
 			}
 
-			manager = syncrl.NewManager(data.Limit, time.Duration(data.Reset))
-			rl.AddManager(level, manager)
+			bm = rl.NewSync(data.Limit, time.Duration(data.Reset))
+			suite.Put(level, bm)
 		}
 
-		bucket := manager.GetBucket(key.ID)
-		if !bucket.Draw() {
+		bucket := bm.Get(key.ID)
+		if !bucket.Draw(1) {
 			ctx.AbortWithStatusJSON(429, response.TooManyRequests)
 			return
 		}

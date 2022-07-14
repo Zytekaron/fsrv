@@ -4,8 +4,9 @@ import (
 	"context"
 	"fsrv/src/database"
 	"fsrv/src/types/response"
-	"fsrv/utils/syncrl"
+	"fsrv/utils"
 	"github.com/gin-gonic/gin"
+	"github.com/zytekaron/gotil/v2/rl"
 	"log"
 	"time"
 )
@@ -17,8 +18,8 @@ const authPurgeInterval = 10 * time.Minute
 // KeyAuth validates that a key exists and is not expired
 // and then adds the "key" property to the gin context.
 func KeyAuth(keys database.KeyController) gin.HandlerFunc {
-	rl := syncrl.NewManager(authLimit, authReset)
-	rl.Purger(authPurgeInterval)
+	bm := rl.NewSync(authLimit, authReset)
+	utils.Executor(authPurgeInterval, bm.Purge)
 
 	return func(ctx *gin.Context) {
 		auth, ok := extractKey(ctx)
@@ -30,8 +31,8 @@ func KeyAuth(keys database.KeyController) gin.HandlerFunc {
 		// implement ip-level rate limiting to prevent repeated
 		// failed attempts to authenticate with bad credentials
 		ip := ctx.ClientIP()
-		bucket := rl.GetBucket(ip)
-		if !bucket.CanDraw() {
+		bucket := bm.Get(ip)
+		if !bucket.CanDraw(1) {
 			ctx.AbortWithStatusJSON(429, response.TooManyRequests)
 			return
 		}
@@ -44,7 +45,7 @@ func KeyAuth(keys database.KeyController) gin.HandlerFunc {
 			if err == database.ErrNoDocuments {
 				// only draw from the bucket when the authentication fails
 				// due to an invalid token (expired tokens are acceptable)
-				bucket.Draw()
+				bucket.Draw(1)
 				ctx.AbortWithStatusJSON(403, response.Unauthorized)
 				return
 			}
