@@ -6,12 +6,13 @@ import (
 	"os"
 )
 
-var ErrNoConfigs = errors.New("no configuration file found")
+var ErrConfigNotFound = errors.New("no configuration file found")
 
 type Config struct {
 	Server      *Server      `toml:"server"`
-	Database    *Database    `toml:"database"`
 	FileManager *FileManager `toml:"file_manager"`
+	Database    *Database    `toml:"database"`
+	Cache       *Cache       `toml:"cache"`
 }
 
 type Server struct {
@@ -19,14 +20,20 @@ type Server struct {
 	Port int16  `toml:"port"`
 }
 
+type FileManager struct {
+	Path     string `toml:"path"`
+	MaxDepth int    `toml:"max_depth"`
+}
+
 type Database struct {
 	Path    string `toml:"path"`
 	Version int    `toml:"version"`
 }
 
-type FileManager struct {
-	Path     string `toml:"path"`
-	MaxDepth int    `toml:"max_depth"`
+type Cache struct {
+	Keys            int    `toml:"keys"`
+	Permissions     int    `toml:"permissions"`
+	PermissionsHash string `toml:"permissions_hash"`
 }
 
 func Load(paths []string) (*Config, error) {
@@ -43,5 +50,5 @@ func Load(paths []string) (*Config, error) {
 		return cfg, toml.NewDecoder(file).Decode(cfg)
 	}
 
-	return nil, ErrNoConfigs
+	return nil, ErrConfigNotFound
 }
