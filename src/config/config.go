@@ -6,7 +6,7 @@ import (
 	"os"
 )
 
-var ErrConfigNotFound = errors.New("no configuration file found")
+var ErrNotFound = errors.New("no configuration file found")
 
 type Config struct {
 	Server      *Server      `toml:"server"`
@@ -39,7 +39,7 @@ type Cache struct {
 func Load(paths []string) (*Config, error) {
 	for _, path := range paths {
 		file, err := os.Open(path)
-		if err == os.ErrNotExist {
+		if os.IsNotExist(err) {
 			continue
 		}
 		if err != nil {
@@ -50,5 +50,5 @@ func Load(paths []string) (*Config, error) {
 		return cfg, toml.NewDecoder(file).Decode(cfg)
 	}
 
-	return nil, ErrConfigNotFound
+	return nil, ErrNotFound
 }
