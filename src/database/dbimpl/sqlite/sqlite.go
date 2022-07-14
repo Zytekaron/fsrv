@@ -3,9 +3,14 @@ package sqlite
 import (
 	"database/sql"
 	"errors"
+	"fmt"
+	"fsrv/src/database/entities"
+	"fsrv/utils/serde"
 	"os"
+	"time"
 )
 import _ "github.com/mattn/go-sqlite3"
+import _ "embed"
 
 type SQLiteDB struct {
 	db *sql.DB
@@ -29,14 +34,16 @@ func Exists(databaseFile string) (bool, error) {
 		}
 	}
 
-	f, err := os.OpenFile(databaseFile, os.O_RDWR, 666)
-	defer f.Close()
+	f, err := os.OpenFile(databaseFile, os.O_RDWR, 0666)
 	if err != nil {
 		return false, err
-	} else {
-		return true, nil
 	}
+	defer f.Close()
+	return true, nil
 }
+
+//go:embed create.sql
+var sqliteDatabaseCreationQuery string
 
 func Create(databaseFile string) (*SQLiteDB, error) {
 	db, err := sql.Open("sqlite3", databaseFile)
@@ -44,47 +51,83 @@ func Create(databaseFile string) (*SQLiteDB, error) {
 		return nil, err
 	}
 
-	_, err = db.Query(`
-		CREATE TABLE IF NOT EXISTS Ratelimits (
-		    ratelimitID TEXT PRIMARY KEY ,
-		    requests INTEGER NOT NULL,
-		    reset INTEGER NOT NULL
-		);
-
-
-
-		CREATE TABLE IF NOT EXISTS Keys (
-			id TEXT PRIMARY KEY,
-			comment TEXT,
-			ratelimitID TEXT NOT NULL,
-			expires INTEGER NOT NULL, --unix millis
-			created INTEGER NOT NULL, --unix millis
-					
-			FOREIGN KEY (ratelimitID) REFERENCES Ratelimits(ratelimitID)
-		);
-
-
-
-		CREATE TABLE IF NOT EXISTS Roles(
-			keyid TEXT,
-			role TEXT,
-			
-			FOREIGN KEY (keyid) REFERENCES Keys(id)
-		);
-
-
-
-		CREATE TABLE IF NOT EXISTS Permissions (
-		    id INTEGER,
-			keyid TEXT,
-			type TEXT, --RK=read-key, WK=write-key, RR=read-roles, WR=write-roles
-		                                       
-		    FOREIGN KEY (keyid) REFERENCES Keys(id)
-		);
-	`)
+	_, err = db.Query(sqliteDatabaseCreationQuery)
 
 	if err != nil {
 		return nil, err
 	}
 	return &SQLiteDB{db}, nil
+}
+
+//go:embed check.sql
+var sqliteCheckQuery string
+
+func (db *SQLiteDB) Check() error {
+	rows, err := db.db.Query(sqliteCheckQuery)
+	if err != nil {
+		return err
+	}
+	tableMap := map[string]bool{
+		"KeyRoleIntersect": false,
+		"Keys":             false,
+		"Permissions":      false,
+		"Ratelimits":       false,
+		"Resources":        false,
+		"KeyPermIntersect": false,
+		"Roles":            false,
+		"sqlite_master":    false}
+
+	var name string
+	for rows.Next() {
+		err = rows.Scan(name)
+		if err != nil {
+			return err
+		}
+		if _, ok := tableMap[name]; ok {
+			tableMap[name] = true
+		} else {
+			return errors.New(fmt.Sprintf("Extraneous table \"%s\" should not exist in database", name))
+		}
+	}
+
+	for key, val := range tableMap {
+		if !val {
+			return errors.New(fmt.Sprintf("The table \"%s\" does not exist in database", key))
+		}
+	}
+
+	return nil
+}
+
+//go:embed destroy.sql
+var sqliteDatabaseDestructionQuery string
+
+func (db *SQLiteDB) Destroy(databaseFile string) error {
+	_, err := db.db.Query(sqliteDatabaseDestructionQuery)
+	return err
+}
+
+//go:embed getRateLimitByKeyID.sql
+var sqliteGetRateLimit string
+
+func (db *SQLiteDB) getRateLimit(keyid string) (*entities.RateLimit, error) {
+	rows, err := db.db.Query(sqliteGetRateLimit)
+	var requests int
+	var reset int64
+	if err != nil {
+		return nil, err
+	}
+	err = rows.Scan(requests, reset)
+	if err != nil {
+		return nil, err
+	}
+	if rows.Next() {
+		return nil, errors.New("multiple rate limits exist for one key")
+	} else {
+		return &entities.RateLimit{
+			ID:    keyid,
+			Limit: requests,
+			Reset: serde.Duration(reset * int64(time.Millisecond)),
+		}, nil
+	}
 }
