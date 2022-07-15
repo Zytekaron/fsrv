@@ -16,12 +16,12 @@ type KeyQueryBuilder struct {
 func createKeyQueryBuilder(db SQLiteDB) *KeyQueryBuilder {
 	return &KeyQueryBuilder{
 		key: entities.Key{
-			ID:        "",
-			Comment:   "",
-			RateLimit: nil,
-			Roles:     nil,
-			ExpiresAt: serde.Time(time.Now().AddDate(0, 1, 0)),
-			CreatedAt: serde.Time(time.Now()),
+			ID:               "",
+			Comment:          "",
+			RequestRateLimit: nil,
+			Roles:            nil,
+			ExpiresAt:        serde.Time(time.Now().AddDate(0, 1, 0)),
+			CreatedAt:        serde.Time(time.Now()),
 		},
 		db: db.db,
 	}
@@ -37,8 +37,8 @@ func (kqb *KeyQueryBuilder) withRoles(str ...string) *KeyQueryBuilder {
 	return kqb
 }
 
-func (kqb *KeyQueryBuilder) withRateLimit(rateLimit entities.RateLimit) *KeyQueryBuilder {
-	kqb.key.RateLimit = &rateLimit
+func (kqb *KeyQueryBuilder) withRequestRateLimit(rateLimit entities.RateLimit) *KeyQueryBuilder {
+	kqb.key.RequestRateLimit = &rateLimit
 	return kqb
 }
 
@@ -77,9 +77,9 @@ func (kqb *KeyQueryBuilder) run() error {
 	}
 
 	//add RateLimit if exists
-	if kqb.key.RateLimit != nil {
+	if kqb.key.RequestRateLimit != nil {
 		_, err = kqb.db.Query("INSERT INTO Ratelimits (keyid, requests, reset) VALUES (?, ?, ?)",
-			kqb.key.ID, kqb.key.RateLimit.Limit, time.Duration(kqb.key.RateLimit.Reset).Milliseconds())
+			kqb.key.ID, kqb.key.RequestRateLimit.Limit, time.Duration(kqb.key.RequestRateLimit.Reset).Milliseconds())
 		if err != nil {
 			_, _ = kqb.db.Query("ROLLBACK;")
 			return err
