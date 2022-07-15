@@ -21,6 +21,10 @@ path = './files'
 # modified by creating files, but directories
 # may not be created within it.
 max_depth = 32
+# when a file is marked as public, this flag
+# determines whether the file is readable by
+# any user (true) or only authenticated ones (false)
+public = true
 
 # this section is used to configure the
 # database used to store file permissions,
@@ -39,18 +43,41 @@ version = 1
 # at which data is purged, when necessary.
 [cache]
 # the number of user api keys to store.
-# approx size per entry: 128B + key comment
-keys = 10_000
+# approx size per entry: 192B + key comment
+keys = 1_000
 # the number of permission ids to store.
 # approx size per entry:
 # - >32B with permissions_hash='none'   (8B int + 1B per path char including /)
 # -  40B with permissions_hash='sha256' (8B int + 32B hash)
 # -  72B with permissions_hash='sha512' (8B int + 64B hash)
-permissions = 10_000
+permission_ids = 100_000
 # the hash function used when storing file
 # paths for the permissions cache. there is
-# an EXTREMELY low (but non-zero) chance that
+# an extremely low, but non-zero, chance that
 # using a hash function will lead to collisions,
-# which may be detrimental for a file server
-# containing sensitive files.
-permissions_hash = 'sha256'
+# which may lead to insecure direct object
+# reference by otherwise unauthorized keys.
+permission_id_hash = 'sha256'
+
+[logging]
+# the minimum level required to output to stdout.
+# order: 'debug' 'info' 'notice' 'warning' 'error' 'critical'
+stdout_level = 'info'
+# the logging format when outputting to log files.
+# see documentation: https://github.com/op/go-logging
+stdout_format = '%{color}%{time:15:04:05.000} %{id:03x} %{longfile} %{level:-8s} » %{color:reset} %{message}'
+# the path to the file that logs are output to.
+# use an empty string to disable file logging.
+# template: {time} {pid}
+file = './logs/{time}.txt'
+# the minimum level required to output to the log.
+# order: 'debug' 'info' 'notice' 'warning' 'error' 'critical'
+file_level = 'info'
+# the logging format when outputting to log files.
+# see documentation: https://github.com/op/go-logging
+file_format = '%{time:15:04:05.000} %{id:03x} %{longfile} %{level:.04} » %{message}'
+# the max file size is the maximum size allocated
+# for logging. when exceeded, newer entries will
+# be kept in favor of elements near the beginning.
+# examples: '0' (infinite), '100 MB', '50G', '1GiB'
+max_file_size = '1G'
