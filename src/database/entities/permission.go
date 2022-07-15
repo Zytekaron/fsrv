@@ -3,10 +3,22 @@ package entities
 type AccessStatus int8
 
 const (
-	AccessAllowed AccessStatus = iota - 1
+	AccessDenied AccessStatus = iota - 1
 	AccessNeutral
-	AccessDenied
+	AccessAllowed
 )
+
+type AccessNodeType int8
+
+const (
+	AccessNodeKey AccessNodeType = iota
+	AccessNodeRole
+)
+
+type AccessNode struct {
+	ID   string
+	Type AccessNodeType
+}
 
 // Permission represents an access specifier for a file or directory.
 type Permission struct {
@@ -14,25 +26,22 @@ type Permission struct {
 	ID int `json:"id"`
 	// Public represents whether this permission should allow all access attempts.
 	Public bool `json:"public"`
-	// ReadKeys represents tokens which may be allowed or denied access to read.
-	ReadKeys map[string]AccessStatus `json:"read_keys"`
-	// WriteKeys represents tokens which may be allowed or denied access to write.
-	WriteKeys map[string]AccessStatus `json:"write_keys"`
-	// ReadRoles represents roles which may be allowed or denied access to read.
-	ReadRoles map[string]AccessStatus `json:"read_roles"`
-	// WriteRoles represents roles which may be allowed or denied access to write.
-	WriteRoles map[string]AccessStatus `json:"write_roles"`
+
+	// ReadNodes represents keys and roles which may be allowed or denied access to read.
+	ReadNodes map[AccessNode]AccessStatus `json:"read_nodes"`
+	// WriteNodes represents keys and roles which may be allowed or denied access to write.
+	WriteNodes map[AccessNode]AccessStatus `json:"write_nodes"`
 }
 
 func (p *Permission) CheckRead(key *Key) AccessStatus {
 	if p.Public {
 		return AccessAllowed
 	}
-	if status, ok := p.ReadKeys[key.ID]; ok {
+	if status, ok := p.ReadNodes[AccessNode{key.ID, AccessNodeKey}]; ok {
 		return status
 	}
 	for _, role := range key.Roles {
-		if status, ok := p.ReadRoles[role]; ok && status != AccessNeutral {
+		if status, ok := p.ReadNodes[AccessNode{role, AccessNodeRole}]; ok && status != AccessNeutral {
 			return status
 		}
 	}
