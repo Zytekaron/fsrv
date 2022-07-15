@@ -16,6 +16,7 @@ type SQLiteDB struct {
 	db *sql.DB
 }
 
+// New creates an SQLiteDB object by opening the database
 func New(databaseFile string) (*SQLiteDB, error) {
 	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
@@ -24,6 +25,7 @@ func New(databaseFile string) (*SQLiteDB, error) {
 	return &SQLiteDB{db}, nil
 }
 
+// Exists checks if a database file exists, is readable, and is writable
 func Exists(databaseFile string) (bool, error) {
 	_, err := os.Stat(databaseFile)
 	if err != nil {
@@ -45,6 +47,7 @@ func Exists(databaseFile string) (bool, error) {
 //go:embed create.sql
 var sqliteDatabaseCreationQuery string
 
+// Create makes a new database along with the necessary tables and indexes
 func Create(databaseFile string) (*SQLiteDB, error) {
 	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
@@ -62,6 +65,7 @@ func Create(databaseFile string) (*SQLiteDB, error) {
 //go:embed check.sql
 var sqliteCheckQuery string
 
+// Check performs a database integrity check
 func (db *SQLiteDB) Check() error {
 	rows, err := db.db.Query(sqliteCheckQuery)
 	if err != nil {
@@ -102,14 +106,16 @@ func (db *SQLiteDB) Check() error {
 //go:embed destroy.sql
 var sqliteDatabaseDestructionQuery string
 
+// Destroy runs a query that destroys all database objects made in the Create function
 func (db *SQLiteDB) Destroy(databaseFile string) error {
 	_, err := db.db.Query(sqliteDatabaseDestructionQuery)
 	return err
 }
 
-//go:embed getRateLimitByKeyID.sql
+//go:embed getRateLimit.sql
 var sqliteGetRateLimit string
 
+// getRateLimit returns a RateLimit object for a given key
 func (db *SQLiteDB) getRateLimit(keyid string) (*entities.RateLimit, error) {
 	rows, err := db.db.Query(sqliteGetRateLimit)
 	var requests int
@@ -123,11 +129,50 @@ func (db *SQLiteDB) getRateLimit(keyid string) (*entities.RateLimit, error) {
 	}
 	if rows.Next() {
 		return nil, errors.New("multiple rate limits exist for one key")
-	} else {
-		return &entities.RateLimit{
-			ID:    keyid,
-			Limit: requests,
-			Reset: serde.Duration(reset * int64(time.Millisecond)),
-		}, nil
 	}
+
+	return &entities.RateLimit{
+		Limit: requests,
+		Reset: serde.Duration(reset * int64(time.Millisecond)),
+	}, nil
+}
+
+//go:embed getResourcePublicStatus.sql
+var sqliteGetResourcePublicStatus string
+
+// isResourcePublic returns true if a resource is publicly available for reads
+func (db *SQLiteDB) isResourcePublic(resourceID string) (bool, error) {
+	rows, err := db.db.Query(sqliteGetResourcePublicStatus, resourceID)
+	if err != nil {
+		return false, err
+	}
+
+	var public bool
+	err = rows.Scan(public)
+	if err != nil {
+		return false, err
+	}
+
+	return public, nil
+}
+
+//go:embed getResourceRoles.sql
+var sqliteGetResourceRoles string
+
+// getResourceRoles
+func (db *SQLiteDB) getResourceRolePermIter(resourceID string) (func() error, *entities.RolePerm, error) {
+	rows, err := db.db.Query(sqliteGetResourceRoles, resourceID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	var rolePerm entities.RolePerm
+	roleIterNext := func() error {
+		return rows.Scan(rolePerm.Role.Roleid, rolePerm.Role.RoleName, rolePerm.AccessDAA, rolePerm.TypeRW)
+	}
+	return roleIterNext, &rolePerm, nil
+}
+
+func (db *SQLiteDB) setRateLimit(keyid string, rateLimit entities.RateLimit) {
+
 }

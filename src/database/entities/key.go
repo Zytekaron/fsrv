@@ -14,8 +14,7 @@ type Key struct {
 	// Roles are the roles this token has.
 	Roles []string `json:"roles"`
 
-	// RequestRateLimit is the rate limit level of this token
-	RequestRateLimit string `json:"request_rate_limit"`
+	RateLimit *RateLimit `json:"rate_limit"`
 
 	// ExpiresAt is the time when this token expires.
 	ExpiresAt serde.Time `json:"expires_at"`
