@@ -25,9 +25,9 @@ const (
 	FlagAuthedModify
 )
 
-// Permission represents an access specifier for a file or directory.
-type Permission struct {
-	// ID is the id of this permission
+// Resource represents an access specifier for a file or directory.
+type Resource struct {
+	// ID is the id of this Resource
 	ID int `json:"id"`
 	// Flags represents whether this permission should allow all access attempts.
 	Flags Flags `json:"flags"`
@@ -40,7 +40,7 @@ type Permission struct {
 	ModifyNodes map[string]bool `json:"modify_nodes"`
 }
 
-func (p *Permission) CheckRead(key *Key) AccessStatus {
+func (p *Resource) CheckRead(key *Key) AccessStatus {
 	if key == nil {
 		if (p.Flags & FlagPublicRead) == FlagPublicRead {
 			return AccessAllowed

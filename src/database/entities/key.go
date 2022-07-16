@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Key represents an access key used to authenticate against a Permission.
+// Key represents an access key used to authenticate against a Resource.
 type Key struct {
 	// ID is the id of the key.
 	ID string `json:"id"`

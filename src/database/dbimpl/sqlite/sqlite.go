@@ -175,8 +175,8 @@ func (db *SQLiteDB) getResourceRolePermIter(resourceID string) (func() error, *e
 	return roleIterNext, &rolePerm, nil
 }
 
-func (db *SQLiteDB) getResourcePermission(resourceID string) (*entities.Permission, error) {
-	var perm entities.Permission
+func (db *SQLiteDB) getResourcePermission(resourceID string) (*entities.Resource, error) {
+	var perm entities.Resource
 	rows, err := db.db.Query("SELECT flags FROM Resources where resourceid = ?", resourceID)
 	if err != nil {
 		return nil, err
