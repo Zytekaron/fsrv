@@ -24,7 +24,6 @@ type Server struct {
 type FileManager struct {
 	Path     string `toml:"path"`
 	MaxDepth int    `toml:"max_depth"`
-	Public   string `toml:"public"`
 }
 
 type Database struct {

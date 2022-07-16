@@ -21,10 +21,6 @@ path = './files'
 # modified by creating files, but directories
 # may not be created within it.
 max_depth = 32
-# when a file is marked as public, this flag
-# determines whether the file is readable by
-# any user (true) or only authenticated ones (false)
-public = true
 
 # this section is used to configure the
 # database used to store file permissions,
