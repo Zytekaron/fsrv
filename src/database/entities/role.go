@@ -1,12 +1,9 @@
 package entities
 
-type Role struct {
-	Roleid   int
-	RoleName string
-}
+import "fsrv/src/types"
 
 type RolePerm struct {
-	Role      Role
-	AccessDAA int8 //deny, agnostic, allow
-	TypeRW    bool //read, write
+	Role   string
+	Status bool                //deny, allow
+	TypeRW types.OperationType //read, write
 }
