@@ -1,6 +1,6 @@
 package entities
 
-type AccessStatus int8 // todo: consider removing this type in favor of using presence to represent neutrality
+type AccessStatus int8
 
 const (
 	AccessDenied AccessStatus = iota - 1
@@ -41,9 +41,11 @@ type Permission struct {
 	Flags Flags `json:"public"`
 
 	// ReadNodes represents keys and roles which may be allowed or denied access to read.
-	ReadNodes map[AccessNode]AccessStatus `json:"read_nodes"`
+	ReadNodes map[string]bool `json:"read_nodes"`
 	// WriteNodes represents keys and roles which may be allowed or denied access to write.
-	WriteNodes map[AccessNode]AccessStatus `json:"write_nodes"`
+	WriteNodes map[string]bool `json:"write_nodes"`
+	// WriteNodes represents keys and roles which may be allowed or denied access to modify.
+	ModifyNodes map[string]bool `json:"modify_nodes"`
 }
 
 func (p *Permission) CheckRead(key *Key) AccessStatus {
@@ -57,12 +59,19 @@ func (p *Permission) CheckRead(key *Key) AccessStatus {
 		return AccessAllowed
 	}
 
-	if status, ok := p.ReadNodes[AccessNode{key.ID, AccessNodeKey}]; ok {
-		return status
+	if status, ok := p.ReadNodes[key.ID]; ok {
+		if status {
+			return AccessAllowed
+		}
+		return AccessDenied
 	}
+
 	for _, role := range key.Roles {
-		if status, ok := p.ReadNodes[AccessNode{role, AccessNodeRole}]; ok && status != AccessNeutral {
-			return status
+		if status, ok := p.ReadNodes[role]; ok {
+			if status {
+				return AccessAllowed
+			}
+			return AccessDenied
 		}
 	}
 	return AccessNeutral
