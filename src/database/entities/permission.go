@@ -8,29 +8,21 @@ const (
 	AccessAllowed
 )
 
-type AccessNodeType int8
-
-const (
-	AccessNodeKey AccessNodeType = iota
-	AccessNodeRole
-)
-
-type AccessNode struct {
-	ID   string
-	Type AccessNodeType
-}
-
 type Flags int8
 
 const (
 	// FlagPublicRead means any user can read this file without authentication.
 	FlagPublicRead Flags = 1 << iota
-	// FlagPublicWrite means any user can read this file without authentication.
-	FlagPublicWrite
 	// FlagAuthedRead means any authenticated can read this file.
 	FlagAuthedRead
+	// FlagPublicWrite means any user can write this file without authentication.
+	FlagPublicWrite
 	// FlagAuthedWrite means any authenticated can read this file.
 	FlagAuthedWrite
+	// FlagPublicModify means any user can modify this file without authentication.
+	FlagPublicModify
+	// FlagAuthedModify means any authenticated can modify this file.
+	FlagAuthedModify
 )
 
 // Permission represents an access specifier for a file or directory.
@@ -38,7 +30,7 @@ type Permission struct {
 	// ID is the id of this permission
 	ID int `json:"id"`
 	// Flags represents whether this permission should allow all access attempts.
-	Flags Flags `json:"public"`
+	Flags Flags `json:"flags"`
 
 	// ReadNodes represents keys and roles which may be allowed or denied access to read.
 	ReadNodes map[string]bool `json:"read_nodes"`
