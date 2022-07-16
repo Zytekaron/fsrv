@@ -1,0 +1,16 @@
+package types
+
+// OperationType represents the type of operation occurring on a particular file or directory.
+type OperationType int8
+
+const (
+	// OperationRead represents an attempt to read the
+	// contents of a file or list the files in a directory.
+	OperationRead OperationType = iota
+	// OperationWrite represents an attempt to create
+	// a new file and write to it.
+	OperationWrite
+	// OperationModify represents an attempt to
+	// modify the contents of an existing file.
+	OperationModify
+)
