@@ -22,7 +22,7 @@ CREATE TABLE Ratelimits
 CREATE TABLE Resources
 (
     resourceid TEXT PRIMARY KEY,
-    ispublic   INTEGER(1) NOT NULL
+    flags   INTEGER(1) NOT NULL
 );
 
 

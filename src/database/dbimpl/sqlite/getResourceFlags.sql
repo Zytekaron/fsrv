@@ -1,4 +1,4 @@
 -- get if resource is publicly visible
-SELECT ispublic
+SELECT flags
 FROM Resources
 WHERE resourceid = ?;
