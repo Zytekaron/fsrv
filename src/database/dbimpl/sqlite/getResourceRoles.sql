@@ -1,5 +1,5 @@
 -- get role allowed/denied keys by precedence for a given resource and key
-SELECT roleid, roleName, P.permTypeDenyAllow, P.permTypeRW
+SELECT roleName, P.permTypeDenyAllow, P.permTypeRW
 FROM Permissions P
          JOIN RolePermIntersect RPI ON P.permissionid = RPI.permissionid
          JOIN Roles ON RPI.roleid = Roles.roleid
