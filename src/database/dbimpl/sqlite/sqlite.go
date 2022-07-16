@@ -5,7 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"fsrv/src/database/entities"
+	"fsrv/src/types"
 	"fsrv/utils/serde"
+	"log"
 	"os"
 	"time"
 )
@@ -137,7 +139,7 @@ func (db *SQLiteDB) getRateLimit(keyid string) (*entities.RateLimit, error) {
 	}, nil
 }
 
-//go:embed getResourcePublicStatus.sql
+//go:embed getResourceFlags.sql
 var sqliteGetResourcePublicStatus string
 
 // isResourcePublic returns true if a resource is publicly available for reads
@@ -168,9 +170,43 @@ func (db *SQLiteDB) getResourceRolePermIter(resourceID string) (func() error, *e
 
 	var rolePerm entities.RolePerm
 	roleIterNext := func() error {
-		return rows.Scan(rolePerm.Role.Roleid, rolePerm.Role.RoleName, rolePerm.AccessDAA, rolePerm.TypeRW)
+		return rows.Scan(rolePerm.Role, rolePerm.Status, rolePerm.TypeRW)
 	}
 	return roleIterNext, &rolePerm, nil
+}
+
+func (db *SQLiteDB) getResourcePermission(resourceID string) (*entities.Permission, error) {
+	var perm entities.Permission
+	rows, err := db.db.Query("SELECT flags FROM Resources where resourceid = ?", resourceID)
+	if err != nil {
+		return nil, err
+	}
+
+	err = rows.Scan(perm.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	iter, roleperm, err2 := db.getResourceRolePermIter(resourceID)
+	if err != nil {
+		return nil, err2
+	}
+
+	for iter() == nil {
+		switch roleperm.TypeRW {
+		case types.OperationRead:
+			perm.ReadNodes[roleperm.Role] = roleperm.Status
+		case types.OperationWrite:
+			perm.WriteNodes[roleperm.Role] = roleperm.Status
+		case types.OperationModify:
+			perm.ModifyNodes[roleperm.Role] = roleperm.Status
+		default:
+			//todo: make into error
+			log.Println("[error] bad db state")
+		}
+	}
+
+	return &perm, nil
 }
 
 func (db *SQLiteDB) setRateLimit(keyid string, rateLimit entities.RateLimit) {
