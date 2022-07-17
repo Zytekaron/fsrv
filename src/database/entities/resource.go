@@ -78,11 +78,17 @@ func GetFlag(authed bool, accessType types.OperationType) Flags {
 	panic("it's all gone horribly wrong... (resource.go GetFlag)")
 }
 
+// CheckAccessFlags returns an access status for a user, authorized or not, and an access type.
 func (p *Resource) CheckAccessFlags(authed bool, accessType types.OperationType) AccessStatus {
 	flag := GetFlag(authed, accessType)
 
+	// resource flags explicitly permit public or authed permission from above
 	if (p.Flags & flag) == flag {
 		return AccessAllowed
+	}
+	// authed user can still inherit permissions from parent resource
+	if authed {
+		return AccessNeutral
 	}
 	return AccessDenied
 }
