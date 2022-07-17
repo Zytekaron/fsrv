@@ -13,4 +13,7 @@ const (
 	// OperationModify represents an attempt to
 	// modify the contents of an existing file.
 	OperationModify
+	// OperationDelete represents an attempt to
+	// delete an existing file
+	OperationDelete
 )

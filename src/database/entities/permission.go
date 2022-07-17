@@ -1,5 +1,10 @@
 package entities
 
+import (
+	"fmt"
+	"fsrv/src/types"
+)
+
 type AccessStatus int8
 
 const (
@@ -23,6 +28,10 @@ const (
 	FlagPublicModify
 	// FlagAuthedModify means any authenticated can modify this file.
 	FlagAuthedModify
+	// FlagPublicDelete means any user can delete this file without authentication.
+	FlagPublicDelete
+	// FlagAuthedDelete means any authenticated can delete this file.
+	FlagAuthedDelete
 )
 
 // Resource represents an access specifier for a file or directory.
@@ -38,6 +47,8 @@ type Resource struct {
 	WriteNodes map[string]bool `json:"write_nodes"`
 	// WriteNodes represents keys and roles which may be allowed or denied access to modify.
 	ModifyNodes map[string]bool `json:"modify_nodes"`
+	// DeleteNodes represents keys and roles which may be allowed or denied access to delete.
+	DeleteNodes map[string]bool `json:"delete_nodes"`
 }
 
 func (p *Resource) CheckRead(key *Key) AccessStatus {

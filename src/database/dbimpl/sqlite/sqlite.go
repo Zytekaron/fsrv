@@ -200,6 +200,8 @@ func (db *SQLiteDB) getResourcePermission(resourceID string) (*entities.Resource
 			perm.WriteNodes[roleperm.Role] = roleperm.Status
 		case types.OperationModify:
 			perm.ModifyNodes[roleperm.Role] = roleperm.Status
+		case types.OperationDelete:
+			perm.DeleteNodes[roleperm.Role] = roleperm.Status
 		default:
 			//todo: make into error
 			log.Println("[error] bad db state")
