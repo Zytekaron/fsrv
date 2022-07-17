@@ -51,7 +51,100 @@ type Resource struct {
 	DeleteNodes map[string]bool `json:"delete_nodes"`
 }
 
+func GetFlags(authed bool, accessType types.OperationType) Flags {
+	var f Flags
+	switch accessType {
+	case types.OperationRead:
+		if authed {
+			f = FlagAuthedRead
+		} else {
+			f = FlagPublicRead
+		}
+	case types.OperationWrite:
+		if authed {
+			f = FlagAuthedWrite
+		} else {
+			f = FlagPublicWrite
+		}
+	case types.OperationModify:
+		if authed {
+			f = FlagAuthedModify
+		} else {
+			f = FlagPublicModify
+		}
+	case types.OperationDelete:
+		if authed {
+			f = FlagAuthedDelete
+		} else {
+			f = FlagPublicDelete
+		}
+	}
+	return f
+}
+
+func (p *Resource) CheckAccessFlags(authed bool, accessType types.OperationType) AccessStatus {
+	flags := GetFlags(authed, accessType)
+
+	if authed {
+		if (p.Flags & flags) == flags {
+			return AccessAllowed
+		} else {
+			return AccessNeutral
+		}
+	} else {
+		if (p.Flags & flags) == flags {
+			return AccessAllowed
+		} else {
+			return AccessDenied
+		}
+	}
+}
+
+func CheckRoleAccess(key *Key, accessMap map[string]bool) AccessStatus {
+	for _, role := range key.Roles {
+		if status, ok := accessMap[role]; ok {
+			if status {
+				return AccessAllowed
+			}
+			return AccessDenied
+		}
+	}
+	return AccessNeutral
+}
+
+func (p *Resource) CheckAccessGeneral(key *Key, accessMap map[string]bool, accessType types.OperationType) AccessStatus {
+	switch p.CheckAccessFlags(key != nil, accessType) {
+	case AccessAllowed:
+		return AccessAllowed
+	case AccessDenied:
+		return AccessDenied
+	case AccessNeutral:
+		//do nothing and continue
+	default:
+		//todo: make into real error
+		fmt.Println("[error] its all gone horribly wrong... (permission.go)")
+	}
+
+	return CheckRoleAccess(key, accessMap)
+}
+
 func (p *Resource) CheckRead(key *Key) AccessStatus {
+	return p.CheckAccessGeneral(key, p.ReadNodes, types.OperationRead)
+}
+
+func (p *Resource) CheckWrite(key *Key) AccessStatus {
+	return p.CheckAccessGeneral(key, p.WriteNodes, types.OperationRead)
+}
+
+func (p *Resource) CheckModify(key *Key) AccessStatus {
+	return p.CheckAccessGeneral(key, p.ModifyNodes, types.OperationModify)
+}
+
+func (p *Resource) CheckDelete(key *Key) AccessStatus {
+	return p.CheckAccessGeneral(key, p.DeleteNodes, types.OperationDelete)
+}
+
+func (p *Resource) CheckReadZytekaron(key *Key) AccessStatus {
 	if key == nil {
 		if (p.Flags & FlagPublicRead) == FlagPublicRead {
 			return AccessAllowed
