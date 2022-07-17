@@ -10,6 +10,7 @@ type Token struct {
 	// ID is the id of the token.
 	ID string `json:"id"`
 
+	// Comment is used to note the owner or usage of a token.
 	Comment string `json:"comment"`
 
 	// ExpiresAt is the time when this token expires.

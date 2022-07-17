@@ -9,7 +9,7 @@ import (
 type Key struct {
 	// ID is the id of the key.
 	ID string `json:"id"`
-	// Comment is used to note the owner or usage of a token.
+	// Comment is used to note the owner or usage of a key.
 	Comment string `json:"comment"`
 	// Roles are the roles this token has.
 	Roles []string `json:"roles"`
@@ -17,9 +17,9 @@ type Key struct {
 	// RequestRateLimit is the rate limit level of this token
 	RequestRateLimit *RateLimit `json:"request_rate_limit"`
 
-	// ExpiresAt is the time when this token expires.
+	// ExpiresAt is the time when this key expires.
 	ExpiresAt serde.Time `json:"expires_at"`
-	// CreatedAt is the time when this token was created.
+	// CreatedAt is the time when this key was created.
 	CreatedAt serde.Time `json:"created_at"`
 }
 
