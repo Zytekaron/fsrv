@@ -33,6 +33,9 @@ path = './database'
 # do not modify this value unless updating
 # versions or using an existing database.
 version = 1
+# the database solution
+# valid values: {'sqlite'}
+database_type = 'sqlite'
 
 # this section manages the maximum size
 # of the program's caches and the intervals

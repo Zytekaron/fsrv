@@ -11,9 +11,6 @@ import (
 var cfg *config.Config
 var configPaths = []string{"/etc/fsrv/config.toml", "config.toml"}
 
-var keys database.KeyController
-var ratelimits database.RateLimitController
-
 func init() {
 	var err error
 	cfg, err = config.Load(configPaths)
@@ -23,10 +20,14 @@ func init() {
 }
 
 func main() {
-	serv := server.New(keys, ratelimits)
+	db, err := database.Create(cfg.Database)
+	if err != nil {
+		log.Fatal(err)
+	}
+	serv := server.New(db)
 
 	addr := ":" + strconv.Itoa(int(cfg.Server.Port))
-	err := serv.Start(addr)
+	err = serv.Start(addr)
 	if err != nil {
 		log.Fatal(err)
 	}

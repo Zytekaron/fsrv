@@ -8,6 +8,12 @@ import (
 
 var ErrNotFound = errors.New("no configuration file found")
 
+type DatabaseImpl string
+
+const (
+	DatabaseSQLite DatabaseImpl = "sqlite"
+)
+
 type Config struct {
 	Server      *Server      `toml:"server"`
 	FileManager *FileManager `toml:"file_manager"`
@@ -27,8 +33,9 @@ type FileManager struct {
 }
 
 type Database struct {
-	Path    string `toml:"path"`
-	Version int    `toml:"version"`
+	Path    string       `toml:"path"`
+	Version int          `toml:"version"`
+	Type    DatabaseImpl `toml:"type"`
 }
 
 type Cache struct {
