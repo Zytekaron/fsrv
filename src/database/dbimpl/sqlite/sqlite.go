@@ -36,7 +36,7 @@ type SQLiteDB struct {
 //go:embed dbqueries/create.sql
 var sqliteDatabaseCreationQuery string
 
-func (sqlite SQLiteDB) Create(databaseFile string) (database.DBInterface, error) {
+func Create(databaseFile string) (database.DBInterface, error) {
 	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func (sqlite SQLiteDB) Create(databaseFile string) (database.DBInterface, error)
 	return &SQLiteDB{db}, nil
 }
 
-func (sqlite SQLiteDB) Open(databaseFile string) (database.DBInterface, error) {
+func Open(databaseFile string) (database.DBInterface, error) {
 	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func (sqlite SQLiteDB) Open(databaseFile string) (database.DBInterface, error) {
 	return &SQLiteDB{db}, nil
 }
 
-func (sqlite SQLiteDB) Exists(databaseFile string) error {
+func Exists(databaseFile string) error {
 	return dbimpl.Exists(databaseFile)
 }
 

@@ -25,12 +25,6 @@ var (
 )
 
 type DBInterface interface {
-	Create(databaseFile string) (DBInterface, error) //creates the database if it does not exist
-	Open(databaseFile string) (DBInterface, error)   //opens an existing database
-	Exists(databaseFile string) error                //checks if the database exists
-	Check() error                                    //checks database integrity
-	Destroy() error                                  //destroys database objects but leaves database file intact
-
 	CreateKey(key *entities.Key) error
 	CreateResource(resource *entities.Resource) error
 	CreateRole(role *entities.Role) error
