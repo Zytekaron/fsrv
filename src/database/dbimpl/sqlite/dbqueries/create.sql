@@ -43,7 +43,7 @@ CREATE TABLE Permissions
 (
     permissionid      INTEGER,             -- file / dir permission id
     resourceid        TEXT       NOT NULL, -- type of permission granted
-    permTypeRW        INTEGER(1) NOT NULL, -- 0=read 1=write
+    permTypeRWMD        INTEGER(1) NOT NULL, -- 0=read 1=write
     permTypeDenyAllow INTEGER(1) NOT NULL, -- -0=deny 1=allow
 
     FOREIGN KEY (resourceid) REFERENCES Resources (resourceid)

@@ -1,25 +1,60 @@
 package database
 
-import "fsrv/src/database/entities"
+import (
+	"errors"
+	"fsrv/src/database/entities"
+	"fsrv/src/types"
+)
+
+var (
+	ErrCreateFailed  = errors.New("Database creation failed")
+	ErrCheckFailed   = errors.New("Database integrity check failed")
+	ErrDestroyFailed = errors.New("Database object wipe failed")
+
+	ErrKeyDuplicate      = errors.New("A key with the given ID already exists")
+	ErrRoleDuplicate     = errors.New("A role with the given ID already exists")
+	ErrResourceDuplicate = errors.New("A resource with the given ID already exists")
+
+	ErrKeyMissing      = errors.New("The specified key does not exist")
+	ErrRoleMissing     = errors.New("The specified role does not exist")
+	ErrResourceMissing = errors.New("The specified resource does not exist")
+
+	ErrRoleNameBad     = errors.New("The given role name is not allowed")
+	ErrKeyNameBad      = errors.New("The given key name is not allowed")
+	ErrResourceNameBad = errors.New("The given resource name is not allowed")
+)
 
 type DBInterface interface {
-	Create() error  //creates the database if it does not exist
-	Check() error   //checks database integrity
-	Destroy() error //destroys database objects but leaves database file intact
+	Create(databaseFile string) (DBInterface, error) //creates the database if it does not exist
+	Open(databaseFile string) (DBInterface, error)   //opens an existing database
+	Exists(databaseFile string) error                //checks if the database exists
+	Check() error                                    //checks database integrity
+	Destroy() error                                  //destroys database objects but leaves database file intact
 
-	GetKeyRateLimit(keyid string) (entities.RateLimit, error)                                 //retrieves a key's RateLimit
-	GetKeyRoles(keyid string) (map[string]struct{}, error)                                    //retrieves a key's Roles
-	GetResourceRolePerms(resourceid string) ([]entities.RolePerm, error)                      //retrieves an entities RolePerms sorted by priority
-	GetDirectKeyPerms(keyid string) ([]entities.RolePerm, error)                              //retrieves a key's specific permissions
-	GetCombinedKeyResourcePerms(resourceid string, keyid string) ([]entities.RolePerm, error) //retrieves key specific and role specific permissions sorted by priority
+	//create
+	CreateKey(key *entities.Key) error
+	CreateResource(resource *entities.Resource) error
+	CreateRole(role *entities.Role) error
+	CreateRateLimit(keyid string, limit *entities.RateLimit)
 
+	//read
 	GetKeys() []*entities.Key
-	GetRoles() []*string
+	GetKeyIDs() []string
+	GetKeyData(keyid string) (*entities.Key, error)
 	GetResources() []*entities.Resource
-	GetKeyData() *entities.Key
-	GetRoleData() *string
+	GetResourceIDs() []string
+	GetResourceData(resourceid string) (*entities.Resource, error)
+	GetRoles() []string //
 
-	CreateRole(name string, precedence int)
-	DeleteRole(name string)
-	GrantPermission(resource string, role string)
+	//update
+	GiveRole(keyid string, role ...string) error
+	TakeRole(keyid string, role ...string) error
+	GrantPermission(resource string, operationType types.OperationType, role ...string) []error
+	RevokePermission(resource string, operationType types.OperationType, role ...string) []error
+	SetRateLimit(keyid string, limit *entities.RateLimit)
+
+	//delete
+	DeleteRole(name string) error
+	DeleteKey(id string) error
+	DeleteResource(id string) error
 }
