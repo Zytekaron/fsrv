@@ -78,7 +78,8 @@ func (sqlite SQLiteDB) Check() error {
 		"Resources":        false,
 		"KeyPermIntersect": false,
 		"Roles":            false,
-		"sqlite_master":    false}
+		"sqlite_master":    false,
+	}
 
 	var name string
 	for rows.Next() {
