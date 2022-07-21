@@ -17,3 +17,19 @@ const (
 	// delete an existing file
 	OperationDelete
 )
+
+func (opType OperationType) Int() int {
+	switch opType {
+	case OperationRead:
+		return 0
+	case OperationWrite:
+		return 1
+	case OperationModify:
+		return 2
+	case OperationDelete:
+		return 3
+	default:
+		//todo: log error
+		panic("OperationType to int conversion failure")
+	}
+}
