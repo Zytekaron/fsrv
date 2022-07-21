@@ -37,7 +37,7 @@ const (
 // Resource represents an access specifier for a file or directory.
 type Resource struct {
 	// ID is the id of this Resource
-	ID int `json:"id"`
+	ID string `json:"id"`
 	// Flags represents the access flags for this resource.
 	Flags Flags `json:"flags"`
 
