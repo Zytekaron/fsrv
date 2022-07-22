@@ -1,20 +1,21 @@
-CREATE TABLE Keys
+CREATE TABLE Ratelimits
 (
-    keyid   TEXT PRIMARY KEY,
-    note    TEXT,
-    expires INTEGER NOT NULL, -- unix millis
-    created INTEGER NOT NULL  -- unix millis
+    ratelimitid TEXT PRIMARY KEY,
+    requests    INTEGER NOT NULL, -- number of requests in a given period
+    reset       INTEGER NOT NULL  -- timestamp for reset (unix millis)
 );
 
 
 
-CREATE TABLE Ratelimits
+CREATE TABLE Keys
 (
-    keyid    TEXT PRIMARY KEY,
-    requests INTEGER NOT NULL, -- number of requests in a given period
-    reset    INTEGER NOT NULL, -- timestamp for reset (unix millis)
+    keyid       TEXT PRIMARY KEY,
+    note        TEXT,
+    ratelimitid TEXT,
+    expires     INTEGER NOT NULL, -- unix millis
+    created     INTEGER NOT NULL, -- unix millis
 
-    FOREIGN KEY (keyid) REFERENCES Keys (keyid)
+    FOREIGN KEY (ratelimitid) REFERENCES Ratelimits (ratelimitid)
 );
 
 
@@ -22,7 +23,7 @@ CREATE TABLE Ratelimits
 CREATE TABLE Resources
 (
     resourceid TEXT PRIMARY KEY,
-    flags   INTEGER(1) NOT NULL
+    flags      INTEGER(1) NOT NULL
 );
 
 
@@ -43,7 +44,7 @@ CREATE TABLE Permissions
 (
     permissionid      INTEGER,             -- file / dir permission id
     resourceid        TEXT       NOT NULL, -- type of permission granted
-    permTypeRWMD        INTEGER(1) NOT NULL, -- 0=read 1=write
+    permTypeRWMD      INTEGER(1) NOT NULL, -- 0=read 1=write
     permTypeDenyAllow INTEGER(1) NOT NULL, -- -0=deny 1=allow
 
     FOREIGN KEY (resourceid) REFERENCES Resources (resourceid)
