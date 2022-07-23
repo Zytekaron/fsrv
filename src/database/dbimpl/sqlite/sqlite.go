@@ -131,8 +131,8 @@ func (sqlite SQLiteDB) CreateKey(key *entities.Key) error {
 
 	//add RateLimit if exists
 	if key.RequestRateLimit != nil {
-		_, err = sqlite.db.Query("INSERT INTO Ratelimits (keyid, requests, reset) VALUES (?, ?, ?)",
-			key.ID, key.RequestRateLimit.Limit, time.Duration(key.RequestRateLimit.Reset).Milliseconds())
+		_, err = sqlite.db.Query("INSERT INTO Ratelimits (ratelimitid, requests, reset) VALUES (?, ?, ?)",
+			key.RequestRateLimit.ID, key.RequestRateLimit.Limit, time.Duration(key.RequestRateLimit.Reset).Milliseconds())
 		if err != nil {
 			_, _ = sqlite.db.Query("ROLLBACK;")
 			return err
@@ -230,9 +230,9 @@ func (sqlite SQLiteDB) CreateRole(role *entities.Role) error {
 	return err
 }
 
-func (sqlite SQLiteDB) CreateRateLimit(keyid string, limit *entities.RateLimit) {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) CreateRateLimit(limit *entities.RateLimit) error {
+	_, err := sqlite.db.Query("INSERT INTO Ratelimits (ratelimitid, requests, reset) VALUES (?, ?, ?)", limit.ID, limit.Limit, limit.Reset)
+	return err
 }
 
 /*               *\
@@ -240,19 +240,61 @@ func (sqlite SQLiteDB) CreateRateLimit(keyid string, limit *entities.RateLimit) 
 	 Retrieval
 \*               */
 
-func (sqlite SQLiteDB) GetKeys() []*entities.Key {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) GetKeys(pageSize int, offset int) ([]*entities.Key, error) {
+	var keys []*entities.Key
+	keyIDs, err := sqlite.GetKeyIDs(pageSize, offset)
+	if err != nil {
+		return keys, err
+	}
+	for i, keyID := range keyIDs {
+		keys[i], err = sqlite.GetKeyData(keyID)
+		if err != nil {
+			return keys, nil
+		}
+	}
+	return keys, nil
 }
 
-func (sqlite SQLiteDB) GetKeyIDs() []string {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) GetKeyIDs(pageSize int, offset int) ([]string, error) {
+	keyIDs := make([]string, 0, pageSize)
+	_, err := sqlite.db.Query("SELECT keyid FROM Keys LIMIT ? OFFSET ?", pageSize, offset)
+	return keyIDs, err
 }
 
 func (sqlite SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
-	//TODO implement me
-	panic("implement me")
+	var key *entities.Key = nil
+	var createMS, expireMS int64
+	keyRows, err := sqlite.db.Query("SELECT note, ratelimitid, created, expires FROM Keys WHERE keyid = ?", keyid)
+	if err != nil {
+		return key, err
+	}
+
+	//todo: consider combining with main key query using join
+	var rateLimitID string
+	var rateLimit entities.RateLimit
+	rateRows, err := sqlite.db.Query("SELECT ratelimitid, requests, reset FROM Ratelimits WHERE ratelimitid = ?", rateLimitID)
+	if err != nil {
+		return key, err
+	}
+
+	//todo: get roles by precedence using KeyRoleIntersect
+	var roles []string
+	var role string
+	roleRows, err := sqlite.db.Query("SELECT roleName FROM Roles JOIN KeyRoleIntersect KRI on Roles.roleid = KRI.roleid WHERE keyid = ? ORDER BY rolePrecedence", keyid)
+	rateRows.Scan(rateLimit.ID, rateLimit.Limit, rateLimit.Reset)
+	keyRows.Scan(key.Comment, rateLimitID, createMS, expireMS)
+	for roleRows.Next() {
+		roleRows.Scan(role)
+		roles = append(roles, role)
+	}
+
+	key.ID = keyid
+	key.CreatedAt = serde.Time(time.UnixMilli(createMS))
+	key.ExpiresAt = serde.Time(time.UnixMilli(expireMS))
+	key.RequestRateLimit = &rateLimit
+	key.Roles = roles //todo: add roles to key struct
+
+	return key, nil
 }
 
 func (sqlite SQLiteDB) GetResources() []*entities.Resource {
@@ -334,7 +376,7 @@ func (sqlite SQLiteDB) RevokePermission(resource string, operationType types.Ope
 	panic("implement me")
 }
 
-func (sqlite SQLiteDB) SetRateLimit(keyid string, limit *entities.RateLimit) {
+func (sqlite SQLiteDB) SetRateLimit(limit *entities.RateLimit) error {
 	//TODO implement me
 	panic("implement me")
 }
