@@ -28,10 +28,10 @@ type DBInterface interface {
 	CreateKey(key *entities.Key) error
 	CreateResource(resource *entities.Resource) error
 	CreateRole(role *entities.Role) error
-	CreateRateLimit(keyid string, limit *entities.RateLimit)
+	CreateRateLimit(limit *entities.RateLimit) error
 
-	GetKeys() []*entities.Key
-	GetKeyIDs() []string
+	GetKeys(pageSize int, offset int) ([]*entities.Key, error)
+	GetKeyIDs(pageSize int, offset int) ([]string, error)
 	GetKeyData(keyid string) (*entities.Key, error)
 	GetResources() []*entities.Resource
 	GetResourceIDs() []string
@@ -42,7 +42,7 @@ type DBInterface interface {
 	TakeRole(keyid string, role ...string) error
 	GrantPermission(resource string, operationType types.OperationType, role ...string) []error
 	RevokePermission(resource string, operationType types.OperationType, role ...string) []error
-	SetRateLimit(keyid string, limit *entities.RateLimit)
+	SetRateLimit(limit *entities.RateLimit) error
 
 	DeleteRole(name string) error
 	DeleteKey(id string) error
