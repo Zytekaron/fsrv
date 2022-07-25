@@ -302,7 +302,7 @@ func (sqlite SQLiteDB) GetResources() []*entities.Resource {
 	panic("implement me")
 }
 
-func (sqlite SQLiteDB) GetResourceIDs() []string {
+func (sqlite SQLiteDB) GetResourceIDs() ([]string, error) {
 	//TODO implement me
 	panic("implement me")
 }
@@ -346,9 +346,23 @@ func (sqlite SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, e
 	return &perm, nil
 }
 
-func (sqlite SQLiteDB) GetRoles() []string {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) GetRoles() ([]string, error) {
+	var role string
+	var roles []string
+	rows, err := sqlite.db.Query("SELECT roleName FROM Roles where roleTypeRK=0")
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		err = rows.Scan(role)
+		if err != nil {
+			return roles, err
+		}
+		roles = append(roles, role)
+	}
+
+	return roles, nil
 }
 
 /*               *\
