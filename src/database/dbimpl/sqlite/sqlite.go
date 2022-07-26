@@ -257,7 +257,15 @@ func (sqlite SQLiteDB) GetKeys(pageSize int, offset int) ([]*entities.Key, error
 
 func (sqlite SQLiteDB) GetKeyIDs(pageSize int, offset int) ([]string, error) {
 	keyIDs := make([]string, 0, pageSize)
-	_, err := sqlite.db.Query("SELECT keyid FROM Keys LIMIT ? OFFSET ?", pageSize, offset)
+	rows, err := sqlite.db.Query("SELECT keyid FROM Keys LIMIT ? OFFSET ?", pageSize, offset)
+
+	for i := range keyIDs {
+		err = rows.Scan(keyIDs[i])
+		if err != nil {
+			return keyIDs, err
+		}
+	}
+
 	return keyIDs, err
 }
 
@@ -281,10 +289,19 @@ func (sqlite SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
 	var roles []string
 	var role string
 	roleRows, err := sqlite.db.Query("SELECT roleName FROM Roles JOIN KeyRoleIntersect KRI on Roles.roleid = KRI.roleid WHERE keyid = ? ORDER BY rolePrecedence", keyid)
-	rateRows.Scan(rateLimit.ID, rateLimit.Limit, rateLimit.Reset)
-	keyRows.Scan(key.Comment, rateLimitID, createMS, expireMS)
+	err = rateRows.Scan(rateLimit.ID, rateLimit.Limit, rateLimit.Reset)
+	if err != nil {
+		return key, err
+	}
+	err = keyRows.Scan(key.Comment, rateLimitID, createMS, expireMS)
+	if err != nil {
+		return key, err
+	}
 	for roleRows.Next() {
-		roleRows.Scan(role)
+		err = roleRows.Scan(role)
+		if err != nil {
+			return key, err
+		}
 		roles = append(roles, role)
 	}
 
@@ -297,14 +314,39 @@ func (sqlite SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
 	return key, nil
 }
 
-func (sqlite SQLiteDB) GetResources() []*entities.Resource {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) GetResources(pageSize int, offset int) ([]*entities.Resource, error) {
+	resourceIDs, err := sqlite.GetResourceIDs(pageSize, offset)
+	if err != nil {
+		return nil, nil
+	}
+	resources := make([]*entities.Resource, 0, len(resourceIDs))
+
+	for i, id := range resourceIDs {
+		resources[i], err = sqlite.GetResourceData(id)
+		if err != nil {
+			return resources, err
+		}
+	}
+
+	return resources, nil
 }
 
-func (sqlite SQLiteDB) GetResourceIDs() ([]string, error) {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) GetResourceIDs(pageSize int, offset int) ([]string, error) {
+	resourceIDs := make([]string, 0, pageSize)
+	arrPos := 0
+	rows, err := sqlite.db.Query("SELECT resourceid FROM Resources LIMIT ? OFFSET ?", pageSize, offset)
+	if err != nil {
+		return resourceIDs, err
+	}
+
+	for rows.Next() {
+		err = rows.Scan(resourceIDs[arrPos])
+		if err != nil {
+			return resourceIDs, err
+		}
+	}
+
+	return resourceIDs, nil
 }
 
 func (sqlite SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, error) {

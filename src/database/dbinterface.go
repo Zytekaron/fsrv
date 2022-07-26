@@ -33,8 +33,8 @@ type DBInterface interface {
 	GetKeys(pageSize int, offset int) ([]*entities.Key, error)
 	GetKeyIDs(pageSize int, offset int) ([]string, error)
 	GetKeyData(keyid string) (*entities.Key, error)
-	GetResources() []*entities.Resource
-	GetResourceIDs() ([]string, error)
+	GetResources(pageSize int, offset int) ([]*entities.Resource, error)
+	GetResourceIDs(pageSize int, offset int) ([]string, error)
 	GetResourceData(resourceid string) (*entities.Resource, error)
 	GetRoles() ([]string, error) //
 
