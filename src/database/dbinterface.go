@@ -40,8 +40,8 @@ type DBInterface interface {
 
 	GiveRole(keyid string, role ...string) error
 	TakeRole(keyid string, role ...string) error
-	GrantPermission(resource string, operationType types.OperationType, role ...string) []error
-	RevokePermission(resource string, operationType types.OperationType, role ...string) []error
+	GrantPermission(resource string, operationType types.OperationType, denyAllow bool, role ...string) []error
+	RevokePermission(resource string, operationType types.OperationType, denyAllow bool, role ...string) error
 	SetRateLimit(limit *entities.RateLimit) error
 
 	DeleteRole(name string) error

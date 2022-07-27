@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 )
-import _ "github.com/mattn/go-sqlite3"
+import driver "github.com/mattn/go-sqlite3"
 import _ "embed"
 
 type SQLiteDB struct {
@@ -448,14 +448,113 @@ func (sqlite SQLiteDB) TakeRole(keyid string, roles ...string) error {
 	return nil
 }
 
-func (sqlite SQLiteDB) GrantPermission(resource string, operationType types.OperationType, role ...string) []error {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) GrantPermission(resourceID string, operationType types.OperationType, denyAllow bool, roles ...string) []error {
+	var errs []error
+	var permissionID int
+	tx, err := sqlite.db.Begin()
+	_, err = tx.Query("INSERT INTO Permissions (resourceid, permTypeRWMD, permTypeDenyAllow) VALUES (?, ?, ?)", resourceID, operationType, denyAllow)
+	fail := false
+	if err != nil {
+		//todo: see if this code can be refactored
+		if err == driver.ErrConstraintUnique {
+			errs = append(errs, err)
+			row := tx.QueryRow("SELECT permissionid FROM Permissions WHERE resourceid = ? AND permTypeRWMD = ? AND permTypeDenyAllow = ?", resourceID, operationType, denyAllow)
+			err = row.Scan(permissionID)
+			if err != nil {
+				fail = true
+			}
+		} else {
+			fail = true
+		}
+	} else {
+		row := tx.QueryRow("SELECT last_insert_rowid()")
+		err = row.Scan(permissionID)
+		if err != nil {
+			fail = true
+		}
+	}
+	if fail {
+		errs = append(errs, err)
+		err = tx.Rollback()
+		if err != nil {
+			errs = append(errs, err)
+		}
+		return errs
+	}
+
+	//todo DOUBLE CHECK
+	query := ""
+	params := make([]string, len(roles)*2)
+	for i, role := range roles {
+		query += "(?,?),"
+
+		params[i*2] = role
+		params[i*2+1] = strconv.Itoa(permissionID)
+	}
+	query = query[:len(query)-1]
+	_, err = tx.Query("INSERT INTO RolePermIntersect (roleid, permissionid) VALUES"+query, params)
+	if err != nil {
+		errs = append(errs, err)
+		return errs
+	}
+	return nil
 }
 
-func (sqlite SQLiteDB) RevokePermission(resource string, operationType types.OperationType, role ...string) []error {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) RevokePermission(resource string, operationType types.OperationType, denyAllow bool, roles ...string) error {
+	tx, e := sqlite.db.Begin()
+	if e != nil {
+		return e
+	}
+
+	//get parts for retrieval query
+	query := ""
+	params := make([]string, len(roles))
+	for i, role := range roles {
+		query += "?,"
+		params[i] = role
+	}
+	query = query[:len(query)-1]
+
+	//get permissions that need to be deleted by ID
+	rows, err := tx.Query("SELECT permissionid FROM Permissions WHERE resourceid = ? AND Permissions.permTypeRWMD = ? AND Permissions.permTypeDenyAllow = ?"+
+		"AND Permissions.permissionid IN (SELECT RPI.permissionid FROM RolePermIntersect RPI WHERE roleid IN ("+query+")", resource, operationType, denyAllow, params)
+	if err != nil {
+		commitOrPanic(tx)
+		return err
+	}
+
+	//get parts for deletion query
+	var permID string
+	query = ""
+	params = params[:0]
+	for rows.Next() {
+		err = rows.Scan(permID)
+		if err != nil {
+			rollbackOrPanic(tx)
+			return err
+		}
+		query += "?,"
+		params = append(params, permID)
+	}
+	query = query[:len(query)-1]
+
+	//delete permissions
+	rows, err = tx.Query("DELETE FROM Permissions WHERE permissionid IN ("+query+")", params)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+
+	//delete orphaned RolePermIntersect entries
+	rows, err = tx.Query("DELETE FROM RolePermIntersect WHERE permissionid IN ("+query+")", params)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+
+	commitOrPanic(tx)
+
+	return nil
 }
 
 func (sqlite SQLiteDB) SetRateLimit(limit *entities.RateLimit) error {
@@ -563,4 +662,18 @@ func (sqlite *SQLiteDB) createResourcePermission(resource *entities.Resource, pe
 	}
 
 	return nil
+}
+
+func rollbackOrPanic(tx *sql.Tx) {
+	err := tx.Rollback()
+	if err != nil {
+		panic("BAD DATABASE STATE (TRANSACTION FAILED TO ROLL BACK): " + err.Error())
+	}
+}
+
+func commitOrPanic(tx *sql.Tx) {
+	err := tx.Commit()
+	if err != nil {
+		panic("BAD DATABASE STATE (TRANSACTION FAILED TO COMMIT): " + err.Error())
+	}
 }
