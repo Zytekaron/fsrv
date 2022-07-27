@@ -412,14 +412,40 @@ func (sqlite SQLiteDB) GetRoles() ([]string, error) {
 	 Functions
 \*               */
 
-func (sqlite SQLiteDB) GiveRole(keyid string, role ...string) error {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) GiveRole(keyid string, roles ...string) error {
+	query := ""
+	params := make([]string, len(roles)*2)
+	for i, role := range roles {
+		query += "(?, ?),"
+
+		params[i*2] = keyid
+		params[i*2+1] = role
+	}
+
+	query = query[:len(query)-1]
+
+	_, err := sqlite.db.Query("INSERT INTO KeyRoleIntersect VALUES "+query, params)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
-func (sqlite SQLiteDB) TakeRole(keyid string, role ...string) error {
-	//TODO implement me
-	panic("implement me")
+func (sqlite SQLiteDB) TakeRole(keyid string, roles ...string) error {
+	query := ""
+	params := make([]string, len(roles))
+	for i, role := range roles {
+		query += "?,"
+
+		params[i] = role
+	}
+	query = query[:len(query)-1]
+
+	_, err := sqlite.db.Query("DELETE FROM KeyRoleIntersect WHERE keyid = ? AND roleid IN ("+query+")", keyid, params)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (sqlite SQLiteDB) GrantPermission(resource string, operationType types.OperationType, role ...string) []error {
