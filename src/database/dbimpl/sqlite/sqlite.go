@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 )
-import driver "github.com/mattn/go-sqlite3"
+import _ "github.com/mattn/go-sqlite3"
 import _ "embed"
 
 type SQLiteDB struct {
