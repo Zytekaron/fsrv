@@ -516,7 +516,8 @@ func (sqlite SQLiteDB) RevokePermission(resourceID string, operationType types.O
 	}
 
 	//delete RolePermIntersect entries
-	_, err = tx.Query("DELETE FROM RolePermIntersect WHERE permissionid = ?", permissionID)
+	params := getNParams("?,", len(roles))
+	_, err = tx.Query("DELETE FROM RolePermIntersect WHERE permissionid = ? AND roleid IN ("+params+")", permissionID, roles)
 	if err != nil {
 		rollbackOrPanic(tx)
 		return err
