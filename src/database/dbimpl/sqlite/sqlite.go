@@ -550,7 +550,77 @@ func (sqlite SQLiteDB) RevokePermission(resource string, operationType types.Ope
 	return nil
 }
 
-func (sqlite SQLiteDB) SetRateLimit(limit *entities.RateLimit) error {
+func (sqlite SQLiteDB) RevokePermission2(resource string, operationType types.OperationType, denyAllow bool, roles ...string) error {
+	/*Begin transaction that:
+	-Retrieves a permissionID for the given resourceid, operationType, and denyAllow status
+	-Removes the specified role(s) from the RolePermIntersect
+	-Checks if any roles are still associated with that permission node
+	-Removes the permission node by id if it has no associated roles
+	*/
+	tx, e := sqlite.db.Begin()
+	if e != nil {
+		return e
+	}
+
+	//get parts for retrieval permissionid query
+	query := getNParams("?,", len(roles))
+	params := make([]string, len(roles))
+	for i, role := range roles {
+		params[i] = role
+	}
+
+	//get permission that connects to roles that need their connection to this permission revoked
+	rows, err := tx.Query("SELECT permissionid FROM Permissions WHERE resourceid = ? AND Permissions.permTypeRWMD = ? AND Permissions.permTypeDenyAllow = ?", resource, operationType, denyAllow)
+	if err != nil {
+		commitOrPanic(tx)
+		return err
+	}
+
+	//get parts for deletion queries
+	var permID string
+	query = ""
+	params = params[:0]
+	for rows.Next() {
+		err = rows.Scan(permID)
+		if err != nil {
+			rollbackOrPanic(tx)
+			return err
+		}
+		query += "?,"
+		params = append(params, permID)
+	}
+	query = query[:len(query)-1]
+
+	//delete RolePermIntersect entries
+	rows, err = tx.Query("DELETE FROM RolePermIntersect WHERE permissionid IN ("+query+")", params)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+
+	//count remaining references
+	row := tx.QueryRow("SELECT COUNT(permissionid) FROM RolePermIntersect WHERE permissionid IN ("+query+")", params)
+	var references int
+	err = row.Scan(references)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+	if references < 1 {
+		//delete useless permissions
+		rows, err = tx.Query("DELETE FROM Permissions WHERE permissionid IN ("+query+")", params)
+		if err != nil {
+			rollbackOrPanic(tx)
+			return err
+		}
+	}
+
+	commitOrPanic(tx)
+
+	return nil
+}
+
+func (sqlite SQLiteDB) SetRateLimit(key *entities.Key, limit *entities.RateLimit) error {
 	//TODO implement me
 	panic("implement me")
 }
