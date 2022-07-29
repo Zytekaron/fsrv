@@ -42,7 +42,7 @@ type DBInterface interface {
 	TakeRole(keyid string, role ...string) error
 	GrantPermission(resource string, operationType types.OperationType, denyAllow bool, role ...string) []error
 	RevokePermission(resource string, operationType types.OperationType, denyAllow bool, role ...string) error
-	SetRateLimit(limit *entities.RateLimit) error
+	SetRateLimit(key *entities.Key, limit *entities.RateLimit) error
 
 	DeleteRole(name string) error
 	DeleteKey(id string) error
