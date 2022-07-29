@@ -451,52 +451,45 @@ func (sqlite SQLiteDB) TakeRole(keyid string, roles ...string) error {
 func (sqlite SQLiteDB) GrantPermission(resourceID string, operationType types.OperationType, denyAllow bool, roles ...string) []error {
 	var errs []error
 	var permissionID int
+	//begin transaction
 	tx, err := sqlite.db.Begin()
-	_, err = tx.Query("INSERT INTO Permissions (resourceid, permTypeRWMD, permTypeDenyAllow) VALUES (?, ?, ?)", resourceID, operationType, denyAllow)
-	fail := false
 	if err != nil {
-		//todo: see if this code can be refactored
-		if err == driver.ErrConstraintUnique {
-			errs = append(errs, err)
-			row := tx.QueryRow("SELECT permissionid FROM Permissions WHERE resourceid = ? AND permTypeRWMD = ? AND permTypeDenyAllow = ?", resourceID, operationType, denyAllow)
-			err = row.Scan(permissionID)
-			if err != nil {
-				fail = true
-			}
-		} else {
-			fail = true
-		}
-	} else {
-		row := tx.QueryRow("SELECT last_insert_rowid()")
-		err = row.Scan(permissionID)
-		if err != nil {
-			fail = true
-		}
-	}
-	if fail {
-		errs = append(errs, err)
-		err = tx.Rollback()
-		if err != nil {
-			errs = append(errs, err)
-		}
+		errs = append(errs, errors.New("cannot begin transaction"))
 		return errs
 	}
 
-	//todo DOUBLE CHECK
-	query := ""
+	//get permissionid of existing/new permission node
+	row := tx.QueryRow("SELECT permissionid FROM Permissions WHERE resourceid = ? AND permTypeRWMD = ? AND permTypeDenyAllow = ?", resourceID, operationType, denyAllow)
+	err = row.Scan(permissionID)
+	if err == sql.ErrNoRows {
+		_, err = tx.Query("INSERT INTO Permissions (resourceid, permTypeRWMD, permTypeDenyAllow) VALUES (?, ?, ?)", resourceID, operationType, denyAllow)
+		if err != nil {
+			errs = append(errs, err)
+			rollbackOrPanic(tx)
+			return errs
+		}
+		row = tx.QueryRow("SELECT last_insert_rowid()")
+		if err != nil {
+			errs = append(errs, err)
+			rollbackOrPanic(tx)
+			return errs
+		}
+	}
+
+	//add roles to permission node
+	query := getNParams("(?,?),", len(roles))
 	params := make([]string, len(roles)*2)
 	for i, role := range roles {
-		query += "(?,?),"
-
 		params[i*2] = role
 		params[i*2+1] = strconv.Itoa(permissionID)
 	}
-	query = query[:len(query)-1]
 	_, err = tx.Query("INSERT INTO RolePermIntersect (roleid, permissionid) VALUES"+query, params)
 	if err != nil {
 		errs = append(errs, err)
+		rollbackOrPanic(tx)
 		return errs
 	}
+
 	return nil
 }
 
@@ -676,4 +669,18 @@ func commitOrPanic(tx *sql.Tx) {
 	if err != nil {
 		panic("BAD DATABASE STATE (TRANSACTION FAILED TO COMMIT): " + err.Error())
 	}
+}
+
+//returns a string containing n query parameters
+//useful for converting go arrays into multiple query parameters
+//The format is the pattern that is repeated n times
+//The last character in the paramFormat string is expected to be a "," so that it may be trimmed
+func getNParams(paramFormat string, n int) string {
+	queryParams := ""
+	for i := 0; i < n; i++ {
+		queryParams += paramFormat
+	}
+	queryParams = queryParams[:len(queryParams)-1]
+
+	return queryParams
 }
