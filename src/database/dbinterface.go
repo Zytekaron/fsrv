@@ -3,7 +3,6 @@ package database
 import (
 	"errors"
 	"fsrv/src/database/entities"
-	"fsrv/src/types"
 )
 
 var (
@@ -40,8 +39,8 @@ type DBInterface interface {
 
 	GiveRole(keyid string, role ...string) error
 	TakeRole(keyid string, role ...string) error
-	GrantPermission(resource string, operationType types.OperationType, denyAllow bool, role ...string) []error
-	RevokePermission(resource string, operationType types.OperationType, denyAllow bool, role ...string) error
+	GrantPermission(permission *entities.Permission, role ...string) []error
+	RevokePermission(permission *entities.Permission, role ...string) error
 	SetRateLimit(key *entities.Key, limit *entities.RateLimit) error
 
 	DeleteRole(name string) error

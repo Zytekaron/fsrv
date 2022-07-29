@@ -7,8 +7,13 @@ type Role struct {
 	Precedence int
 }
 
+type Permission struct {
+	ResourceID string
+	TypeRWMD   types.OperationType //read, write, modify, delete
+	Status     bool                //deny, allow
+}
+
 type RolePerm struct {
-	Role   Role
-	Status bool                //deny, allow
-	TypeRW types.OperationType //read, write
+	Role Role
+	Perm Permission
 }

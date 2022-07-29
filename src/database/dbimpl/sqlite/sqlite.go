@@ -370,15 +370,15 @@ func (sqlite SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, e
 
 	//get permissions
 	for iter() == nil {
-		switch roleperm.TypeRW {
+		switch roleperm.Perm.TypeRWMD {
 		case types.OperationRead:
-			perm.ReadNodes[roleperm.Role.ID] = roleperm.Status
+			perm.ReadNodes[roleperm.Role.ID] = roleperm.Perm.Status
 		case types.OperationWrite:
-			perm.WriteNodes[roleperm.Role.ID] = roleperm.Status
+			perm.WriteNodes[roleperm.Role.ID] = roleperm.Perm.Status
 		case types.OperationModify:
-			perm.ModifyNodes[roleperm.Role.ID] = roleperm.Status
+			perm.ModifyNodes[roleperm.Role.ID] = roleperm.Perm.Status
 		case types.OperationDelete:
-			perm.DeleteNodes[roleperm.Role.ID] = roleperm.Status
+			perm.DeleteNodes[roleperm.Role.ID] = roleperm.Perm.Status
 		default:
 			//todo: make into error
 			log.Println("[error] bad db state")
@@ -448,7 +448,8 @@ func (sqlite SQLiteDB) TakeRole(keyid string, roles ...string) error {
 	return nil
 }
 
-func (sqlite SQLiteDB) GrantPermission(resourceID string, operationType types.OperationType, denyAllow bool, roles ...string) []error {
+func (sqlite SQLiteDB) GrantPermission(permission *entities.Permission, roles ...string) []error {
+	//resourceID string, operationType types.OperationType, denyAllow bool
 	var errs []error
 	var permissionID int
 	//begin transaction
@@ -459,10 +460,10 @@ func (sqlite SQLiteDB) GrantPermission(resourceID string, operationType types.Op
 	}
 
 	//get permissionid of existing/new permission node
-	row := tx.QueryRow("SELECT permissionid FROM Permissions WHERE resourceid = ? AND permTypeRWMD = ? AND permTypeDenyAllow = ?", resourceID, operationType, denyAllow)
+	row := tx.QueryRow("SELECT permissionid FROM Permissions WHERE resourceid = ? AND permTypeRWMD = ? AND permTypeDenyAllow = ?", permission.ResourceID, permission.TypeRWMD, permission.Status)
 	err = row.Scan(permissionID)
 	if err == sql.ErrNoRows {
-		_, err = tx.Query("INSERT INTO Permissions (resourceid, permTypeRWMD, permTypeDenyAllow) VALUES (?, ?, ?)", resourceID, operationType, denyAllow)
+		_, err = tx.Query("INSERT INTO Permissions (resourceid, permTypeRWMD, permTypeDenyAllow) VALUES (?, ?, ?)", permission.ResourceID, permission.TypeRWMD, permission.Status)
 		if err != nil {
 			errs = append(errs, err)
 			rollbackOrPanic(tx)
@@ -493,13 +494,14 @@ func (sqlite SQLiteDB) GrantPermission(resourceID string, operationType types.Op
 	return nil
 }
 
-func (sqlite SQLiteDB) RevokePermission(resourceID string, operationType types.OperationType, denyAllow bool, roles ...string) error {
-	/*Begin transaction that:
-	-Retrieves a permissionID for the given resourceid, operationType, and denyAllow status
-	-Removes the specified role(s) from the RolePermIntersect
-	-Checks if any roles are still associated with that permission node
-	-Removes the permission node by id if it has no associated roles
-	*/
+/*
+RevokePermission Removes a permission from the specified roles
+-Retrieves a permissionID for the given resourceID, operationType, and denyAllow status
+-Removes the specified role(s) from the RolePermIntersect
+-Checks if any roles are still associated with that permission node
+-Removes the permission node by id if it has no associated roles
+*/
+func (sqlite SQLiteDB) RevokePermission(permission *entities.Permission, roles ...string) error {
 	tx, e := sqlite.db.Begin()
 	if e != nil {
 		return e
@@ -507,8 +509,8 @@ func (sqlite SQLiteDB) RevokePermission(resourceID string, operationType types.O
 
 	var permissionID string
 
-	//get permission that connects to roles that need their connection to this permission revoked
-	row := tx.QueryRow("SELECT permissionid FROM Permissions WHERE resourceid = ? AND permTypeRWMD = ? AND permTypeDenyAllow = ?", resourceID, operationType, denyAllow)
+	//get permissionID from database
+	row := tx.QueryRow("SELECT permissionid FROM Permissions WHERE resourceid = ? AND permTypeRWMD = ? AND permTypeDenyAllow = ?", permission.ResourceID, permission.TypeRWMD, permission.Status)
 	err := row.Scan(permissionID)
 	if err != nil {
 		commitOrPanic(tx)
@@ -615,7 +617,7 @@ func (sqlite *SQLiteDB) getResourceRolePermIter(resourceID string) (func() error
 
 	var rolePerm entities.RolePerm
 	roleIterNext := func() error {
-		return rows.Scan(rolePerm.Role, rolePerm.Status, rolePerm.TypeRW)
+		return rows.Scan(rolePerm.Role, rolePerm.Perm.Status, rolePerm.Perm.TypeRWMD)
 	}
 	return roleIterNext, &rolePerm, nil
 }
