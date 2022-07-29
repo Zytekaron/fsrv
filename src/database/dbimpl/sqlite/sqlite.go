@@ -523,7 +523,7 @@ func (sqlite SQLiteDB) RevokePermission(resource string, operationType types.Ope
 		return err
 	}
 
-	//get parts for deletion query
+	//get parts for deletion queries
 	var permID string
 	query = ""
 	params = params[:0]
@@ -593,8 +593,8 @@ func (sqlite SQLiteDB) DeleteResource(id string) error {
 //go:embed getRateLimit.sql
 var sqliteGetRateLimit string
 
-// todo: REMOVE UNUSED
-// getRateLimit returns a RateLimit object for a given key
+//todo: REMOVE UNUSED
+//getRateLimit returns a RateLimit object for a given key
 func (sqlite *SQLiteDB) getRateLimit(keyid string) (*entities.RateLimit, error) {
 	rows, err := sqlite.db.Query(sqliteGetRateLimit)
 	var requests int
