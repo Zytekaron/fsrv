@@ -13,7 +13,7 @@ const (
 	AccessAllowed
 )
 
-type Flags int8
+type Flags uint8
 
 const (
 	// FlagPublicRead means any user can read this file without auth.
