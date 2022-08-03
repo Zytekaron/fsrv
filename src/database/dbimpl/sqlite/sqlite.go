@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"fsrv/src/database"
 	"fsrv/src/database/dbimpl"
+	"fsrv/src/database/dbutil"
 	"fsrv/src/database/entities"
 	"fsrv/src/types"
 	"fsrv/utils/serde"
@@ -36,7 +36,7 @@ type SQLiteDB struct {
 //go:embed dbqueries/create.sql
 var sqliteDatabaseCreationQuery string
 
-func Create(databaseFile string) (database.DBInterface, error) {
+func Create(databaseFile string) (dbutil.DBInterface, error) {
 	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
 		return nil, err
@@ -50,7 +50,7 @@ func Create(databaseFile string) (database.DBInterface, error) {
 	return &SQLiteDB{db}, nil
 }
 
-func Open(databaseFile string) (database.DBInterface, error) {
+func Open(databaseFile string) (dbutil.DBInterface, error) {
 	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
 		return nil, err
@@ -579,7 +579,7 @@ func (sqlite SQLiteDB) DeleteResource(id string) error {
 //									   //
 /////////////////////////////////////////
 
-//go:embed getRateLimit.sql
+//go:embed readqueries/getRateLimit.sql
 var sqliteGetRateLimit string
 
 //todo: REMOVE UNUSED
@@ -605,7 +605,7 @@ func (sqlite *SQLiteDB) getRateLimit(keyid string) (*entities.RateLimit, error) 
 	}, nil
 }
 
-//go:embed getResourceRoles.sql
+//go:embed readqueries/getResourceRoles.sql
 var sqliteGetResourceRoles string
 
 // getResourceRoles
