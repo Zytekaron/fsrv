@@ -17,3 +17,4 @@ config.toml
 *.out
 /go.sum
 /identifier.sqlite
+/src/database/dbimpl/sqlite/test/FSRV_TEST_DATABASE.sqlite
