@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"fsrv/src/database/dbimpl"
-	"fsrv/src/database/dbutil"
 	"fsrv/src/database/entities"
 	"fsrv/src/types"
 	"fsrv/utils/serde"
@@ -36,7 +35,7 @@ type SQLiteDB struct {
 //go:embed dbqueries/create.sql
 var sqliteDatabaseCreationQuery string
 
-func Create(databaseFile string) (dbutil.DBInterface, error) {
+func Create(databaseFile string) (*SQLiteDB, error) {
 	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
 		return nil, err
@@ -50,7 +49,7 @@ func Create(databaseFile string) (dbutil.DBInterface, error) {
 	return &SQLiteDB{db}, nil
 }
 
-func Open(databaseFile string) (dbutil.DBInterface, error) {
+func Open(databaseFile string) (*SQLiteDB, error) {
 	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
 		return nil, err
