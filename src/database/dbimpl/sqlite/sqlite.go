@@ -41,7 +41,12 @@ func Create(databaseFile string) (*SQLiteDB, error) {
 		return nil, err
 	}
 
-	_, err = db.Query(sqliteDatabaseCreationQuery)
+	err = SQLiteDB{db}.Destroy()
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec(sqliteDatabaseCreationQuery)
 
 	if err != nil {
 		return nil, err
@@ -110,30 +115,31 @@ func (sqlite SQLiteDB) Destroy() error {
 	return err
 }
 
+//todo: fix fundamentally broken function CreateKey
 func (sqlite SQLiteDB) CreateKey(key *entities.Key) error {
-	if key.ID != "" {
+	if key.ID == "" {
 		return errors.New("required feild keyid not specified")
 	}
 
 	//begin transaction
-	_, err := sqlite.db.Query("BEGIN TRANSACTION;")
+	tx, err := sqlite.db.Begin()
 	if err != nil {
 		return err
 	}
 	//create key record
-	_, err = sqlite.db.Query("INSERT INTO Keys (keyid, note, expires, created) VALUES (?, ?, ?, ?)",
+	_, err = tx.Exec("INSERT INTO Keys (keyid, note, expires, created) VALUES (?, ?, ?, ?)",
 		key.ID, key.Comment, time.Time(key.ExpiresAt).UnixMilli(), time.Time(key.CreatedAt).UnixMilli())
 	if err != nil {
-		_, _ = sqlite.db.Query("ROLLBACK;")
+		rollbackOrPanic(tx)
 		return err
 	}
 
 	//add RateLimit if exists
 	if key.RequestRateLimit != nil {
-		_, err = sqlite.db.Query("INSERT INTO Ratelimits (ratelimitid, requests, reset) VALUES (?, ?, ?)",
+		_, err = tx.Exec("INSERT INTO Ratelimits (ratelimitid, requests, reset) VALUES (?, ?, ?)",
 			key.RequestRateLimit.ID, key.RequestRateLimit.Limit, time.Duration(key.RequestRateLimit.Reset).Milliseconds())
 		if err != nil {
-			_, _ = sqlite.db.Query("ROLLBACK;")
+			rollbackOrPanic(tx)
 			return err
 		}
 	}
@@ -144,18 +150,19 @@ func (sqlite SQLiteDB) CreateKey(key *entities.Key) error {
 	for _, role := range key.Roles {
 		rows, err = sqlite.db.Query("SELECT roleid FROM Roles WHERE roleName = ?", role)
 		if err != nil {
-			_, _ = sqlite.db.Query("ROLLBACK;")
+			rollbackOrPanic(tx)
 			return err
 		}
+		rows.Next()
 		err = rows.Scan(roleid)
 		if err != nil {
-			_, _ = sqlite.db.Query("ROLLBACK;")
+			rollbackOrPanic(tx)
 			return err
 		}
 
 		_, err = sqlite.db.Query("INSERT INTO KeyRoleIntersect (keyid, roleid) VALUES (?, ?)", key.ID, roleid)
 		if err != nil {
-			_, _ = sqlite.db.Query("ROLLBACK;")
+			rollbackOrPanic(tx)
 			return err
 		}
 	}
@@ -163,14 +170,14 @@ func (sqlite SQLiteDB) CreateKey(key *entities.Key) error {
 	//add KeyRole //todo: ensure that precedence ordering is consistent
 	_, err = sqlite.db.Query("INSERT INTO Roles (roleName, roleTypeRK, rolePrecedence) VALUES (?, 1, 10000)", key.ID)
 	if err != nil {
-		_, _ = sqlite.db.Query("ROLLBACK;")
+		rollbackOrPanic(tx)
 		return err
 	}
 
 	//commit transaction results
-	_, err = sqlite.db.Query("COMMIT;")
+	commitOrPanic(tx)
 	if err != nil {
-		_, _ = sqlite.db.Query("ROLLBACK;")
+		rollbackOrPanic(tx)
 		return err
 	}
 
@@ -225,7 +232,7 @@ func (sqlite SQLiteDB) CreateResource(resource *entities.Resource) error {
 
 func (sqlite SQLiteDB) CreateRole(role *entities.Role) error {
 	//note:roleTypeRK (0 = role, 1 = key)
-	_, err := sqlite.db.Query("INSERT INTO Roles (roleName, rolePrecedence, roleTypeRK) VALUES (?, ?, 0)", role.ID, role.Precedence)
+	_, err := sqlite.db.Exec("INSERT INTO Roles (roleName, rolePrecedence, roleTypeRK) VALUES (?, ?, 0)", role.ID, role.Precedence)
 	return err
 }
 
