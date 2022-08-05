@@ -25,7 +25,7 @@ CREATE TABLE Resources
     resourceid TEXT PRIMARY KEY,
     flags      INTEGER(1) NOT NULL
 );
-
+CREATE INDEX ResourcesByID on Resources (resourceid);
 
 
 CREATE TABLE Roles
