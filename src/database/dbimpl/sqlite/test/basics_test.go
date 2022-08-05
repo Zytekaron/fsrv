@@ -195,6 +195,6 @@ func makeResources(db dbutil.DBInterface) error {
 func TestSQLite(t *testing.T) {
 	db := getDB()
 	bap(t, makeRoles(db))
-	bap(t, makeKeys(db))
 	bap(t, makeResources(db))
+	bap(t, makeKeys(db))
 }
