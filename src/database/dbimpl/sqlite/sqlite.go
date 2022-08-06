@@ -191,41 +191,37 @@ func (sqlite SQLiteDB) CreateKey(key *entities.Key) error {
 
 func (sqlite SQLiteDB) CreateResource(resource *entities.Resource) error {
 	//begin transaction
-	_, err := sqlite.db.Query("BEGIN TRANSACTION;")
+	tx, err := sqlite.db.Begin()
 	if err != nil {
 		return err
 	}
 
 	//insert resource with flags
-	_, err = sqlite.db.Query("INSERT INTO Resources (resourceid, flags) VALUES (?, ?)", resource.ID, resource.Flags)
+	_, err = tx.Exec("INSERT INTO Resources (resourceid, flags) VALUES (?, ?)", resource.ID, resource.Flags)
 	if err != nil {
 		return err
 	}
 
 	//insert permissions
-	err = sqlite.createResourcePermission(resource, resource.ReadNodes, types.OperationRead)
+	err = sqlite.createResourcePermission(tx, resource, resource.ReadNodes, types.OperationRead)
 	if err != nil {
 		return err
 	}
-	err = sqlite.createResourcePermission(resource, resource.WriteNodes, types.OperationWrite)
+	err = sqlite.createResourcePermission(tx, resource, resource.WriteNodes, types.OperationWrite)
 	if err != nil {
 		return err
 	}
-	err = sqlite.createResourcePermission(resource, resource.ModifyNodes, types.OperationModify)
+	err = sqlite.createResourcePermission(tx, resource, resource.ModifyNodes, types.OperationModify)
 	if err != nil {
 		return err
 	}
-	err = sqlite.createResourcePermission(resource, resource.DeleteNodes, types.OperationDelete)
+	err = sqlite.createResourcePermission(tx, resource, resource.DeleteNodes, types.OperationDelete)
 	if err != nil {
 		return err
 	}
 
 	//commit transaction results
-	_, err = sqlite.db.Query("COMMIT;")
-	if err != nil {
-		_, _ = sqlite.db.Query("ROLLBACK;")
-		return err
-	}
+	commitOrPanic(tx)
 
 	return nil
 }
@@ -628,32 +624,28 @@ func (sqlite *SQLiteDB) getResourceRolePermIter(resourceID string) (func() error
 	return roleIterNext, &rolePerm, nil
 }
 
-func (sqlite *SQLiteDB) createResourcePermission(resource *entities.Resource, permMap map[string]bool, operationType types.OperationType) error {
+func (sqlite *SQLiteDB) createResourcePermission(tx *sql.Tx, resource *entities.Resource, permMap map[string]bool, operationType types.OperationType) error {
 	size := len(permMap)
 
-	iters := 0
-	query := ""
-	rolesAndPerms := make([]string, 0, size*3)
-	for _, status := range permMap {
-		iters++
-		query += "(?, ?, ?)"
-		if iters < size {
-			query += ", "
+	if size > 0 {
+		query := ""
+		rolesAndPerms := make([]any, 0, size*3)
+		getNParams("(?,?,?),", size)
+		for _, status := range permMap {
+			//todo: check if strconv is the best idea for this (implement method for operationType?)
+			rolesAndPerms = append(rolesAndPerms, strconv.Itoa(int(operationType)))
+			rolesAndPerms = append(rolesAndPerms, resource.ID)
+			if status {
+				rolesAndPerms = append(rolesAndPerms, "1")
+			} else {
+				rolesAndPerms = append(rolesAndPerms, "0")
+			}
 		}
 
-		//todo: check if strconv is the best idea for this (implement method for operationType?)
-		rolesAndPerms = append(rolesAndPerms, strconv.Itoa(int(operationType)))
-		rolesAndPerms = append(rolesAndPerms, resource.ID)
-		if status {
-			rolesAndPerms = append(rolesAndPerms, "1")
-		} else {
-			rolesAndPerms = append(rolesAndPerms, "0")
+		_, err := tx.Exec("INSERT INTO Permissions (resourceid, permTypeRWMD, permTypeDenyAllow) VALUES "+query, rolesAndPerms...)
+		if err != nil {
+			return err
 		}
-	}
-
-	_, err := sqlite.db.Query("INSERT INTO Permissions (resourceid, permTypeRWMD, permTypeDenyAllow) VALUES "+query, rolesAndPerms)
-	if err != nil {
-		return err
 	}
 
 	return nil
@@ -678,6 +670,10 @@ func commitOrPanic(tx *sql.Tx) {
 //The format is the pattern that is repeated n times
 //The last character in the paramFormat string is expected to be a "," so that it may be trimmed
 func getNParams(paramFormat string, n int) string {
+	if n < 1 {
+		panic("getNParams must not recieve a query number < 1")
+	}
+
 	queryParams := ""
 	for i := 0; i < n; i++ {
 		queryParams += paramFormat
