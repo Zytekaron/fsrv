@@ -54,7 +54,8 @@ func makeRoles(db dbutil.DBInterface) error {
 	roleTable := map[int]string{
 		100:  "stone",
 		200:  "iron",
-		150:  "gold",
+		250:  "gold",
+		1500: "obsidian",
 		1000: "diamond",
 	}
 
@@ -136,8 +137,21 @@ func makeKeys(db dbutil.DBInterface) error {
 		CreatedAt: serde.Time(time.Now()),
 	}
 
+	k6 := entities.Key{
+		ID:      "key_ancientEvil",
+		Comment: "ancient evil must be contained through strict ratelimits and permission control",
+		Roles:   []string{"obsidian"},
+		RequestRateLimit: &entities.RateLimit{
+			ID:    "STRICT_LIMIT",
+			Limit: 10,
+			Reset: 60,
+		},
+		ExpiresAt: serde.Time(time.Now().AddDate(9999, 0, 0)),
+		CreatedAt: serde.Time(time.Now()),
+	}
+
 	//create keys
-	keys := []*entities.Key{&k1, &k2, &k3, &k4, &k5}
+	keys := []*entities.Key{&k1, &k2, &k3, &k4, &k5, &k6}
 	for _, k := range keys {
 		err := db.CreateKey(k)
 		if err != nil {
@@ -173,6 +187,15 @@ func makeResources(db dbutil.DBInterface) error {
 			Flags:       0,
 			ReadNodes:   map[string]bool{"diamond": true, "stone": false},
 			WriteNodes:  map[string]bool{"gold": false, "iron": true},
+			ModifyNodes: nil,
+			DeleteNodes: nil,
+		},
+
+		{
+			ID:          "res_READ:ObsidianDenyStoneAllowStoneDeny,WRITE:Gold",
+			Flags:       0,
+			ReadNodes:   map[string]bool{"obsidian": false, "stone": true, "gold": false},
+			WriteNodes:  map[string]bool{"gold": true},
 			ModifyNodes: nil,
 			DeleteNodes: nil,
 		},
