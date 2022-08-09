@@ -90,7 +90,7 @@ func Exists(databaseFile string) error {
 //go:embed dbqueries/check.sql
 var sqliteCheckQuery string
 
-func (sqlite SQLiteDB) Check() error {
+func (sqlite *SQLiteDB) Check() error {
 	rows, err := sqlite.db.Query(sqliteCheckQuery)
 	if err != nil {
 		return err
@@ -131,13 +131,12 @@ func (sqlite SQLiteDB) Check() error {
 //go:embed dbqueries/destroy.sql
 var sqliteDatabaseDestructionQuery string
 
-func (sqlite SQLiteDB) Destroy() error {
+func (sqlite *SQLiteDB) Destroy() error {
 	_, err := sqlite.db.Query(sqliteDatabaseDestructionQuery)
 	return err
 }
 
-//todo: fix fundamentally broken function CreateKey
-func (sqlite SQLiteDB) CreateKey(key *entities.Key) error {
+func (sqlite *SQLiteDB) CreateKey(key *entities.Key) error {
 	if key.ID == "" {
 		return errors.New("required feild keyid not specified")
 	}
@@ -223,7 +222,7 @@ func (sqlite SQLiteDB) CreateKey(key *entities.Key) error {
 	 Creation
 \*               */
 
-func (sqlite SQLiteDB) CreateResource(resource *entities.Resource) error {
+func (sqlite *SQLiteDB) CreateResource(resource *entities.Resource) error {
 	//begin transaction
 	tx, err := sqlite.db.Begin()
 	if err != nil {
@@ -260,7 +259,7 @@ func (sqlite SQLiteDB) CreateResource(resource *entities.Resource) error {
 	return nil
 }
 
-func (sqlite SQLiteDB) CreateRole(role *entities.Role) error {
+func (sqlite *SQLiteDB) CreateRole(role *entities.Role) error {
 	tx, err := sqlite.db.Begin()
 	if err != nil {
 		return err
@@ -284,7 +283,7 @@ func (sqlite SQLiteDB) CreateRole(role *entities.Role) error {
 	return err
 }
 
-func (sqlite SQLiteDB) CreateRateLimit(limit *entities.RateLimit) error {
+func (sqlite *SQLiteDB) CreateRateLimit(limit *entities.RateLimit) error {
 	_, err := sqlite.db.Query("INSERT INTO Ratelimits (ratelimitid, requests, reset) VALUES (?, ?, ?)", limit.ID, limit.Limit, limit.Reset)
 	return err
 }
@@ -294,7 +293,7 @@ func (sqlite SQLiteDB) CreateRateLimit(limit *entities.RateLimit) error {
 	 Retrieval
 \*               */
 
-func (sqlite SQLiteDB) GetKeys(pageSize int, offset int) ([]*entities.Key, error) {
+func (sqlite *SQLiteDB) GetKeys(pageSize int, offset int) ([]*entities.Key, error) {
 	var keys []*entities.Key
 	keyIDs, err := sqlite.GetKeyIDs(pageSize, offset)
 	if err != nil {
@@ -309,7 +308,7 @@ func (sqlite SQLiteDB) GetKeys(pageSize int, offset int) ([]*entities.Key, error
 	return keys, nil
 }
 
-func (sqlite SQLiteDB) GetKeyIDs(pageSize int, offset int) ([]string, error) {
+func (sqlite *SQLiteDB) GetKeyIDs(pageSize int, offset int) ([]string, error) {
 	keyIDs := make([]string, 0, pageSize)
 	rows, err := sqlite.db.Query("SELECT keyid FROM Keys LIMIT ? OFFSET ?", pageSize, offset)
 
@@ -323,7 +322,7 @@ func (sqlite SQLiteDB) GetKeyIDs(pageSize int, offset int) ([]string, error) {
 	return keyIDs, err
 }
 
-func (sqlite SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
+func (sqlite *SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
 	var key *entities.Key = nil
 	var createMS, expireMS int64
 	keyRows, err := sqlite.db.Query("SELECT note, ratelimitid, created, expires FROM Keys WHERE keyid = ?", keyid)
@@ -368,7 +367,7 @@ func (sqlite SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
 	return key, nil
 }
 
-func (sqlite SQLiteDB) GetResources(pageSize int, offset int) ([]*entities.Resource, error) {
+func (sqlite *SQLiteDB) GetResources(pageSize int, offset int) ([]*entities.Resource, error) {
 	resourceIDs, err := sqlite.GetResourceIDs(pageSize, offset)
 	if err != nil {
 		return nil, nil
@@ -385,7 +384,7 @@ func (sqlite SQLiteDB) GetResources(pageSize int, offset int) ([]*entities.Resou
 	return resources, nil
 }
 
-func (sqlite SQLiteDB) GetResourceIDs(pageSize int, offset int) ([]string, error) {
+func (sqlite *SQLiteDB) GetResourceIDs(pageSize int, offset int) ([]string, error) {
 	resourceIDs := make([]string, 0, pageSize)
 	arrPos := 0
 	rows, err := sqlite.db.Query("SELECT resourceid FROM Resources LIMIT ? OFFSET ?", pageSize, offset)
@@ -403,7 +402,7 @@ func (sqlite SQLiteDB) GetResourceIDs(pageSize int, offset int) ([]string, error
 	return resourceIDs, nil
 }
 
-func (sqlite SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, error) {
+func (sqlite *SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, error) {
 	var perm entities.Resource
 	//get flags
 	rows, err := sqlite.db.Query("SELECT flags FROM Resources where resourceid = ?", resourceid)
@@ -442,7 +441,7 @@ func (sqlite SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, e
 	return &perm, nil
 }
 
-func (sqlite SQLiteDB) GetRoles(pageSize int, offset int) ([]string, error) {
+func (sqlite *SQLiteDB) GetRoles(pageSize int, offset int) ([]string, error) {
 	var role string
 	var roles []string
 	rows, err := sqlite.db.Query("SELECT roleid FROM Roles WHERE roleTypeRK=0 LIMIT ? OFFSET ?", pageSize, offset)
@@ -466,7 +465,7 @@ func (sqlite SQLiteDB) GetRoles(pageSize int, offset int) ([]string, error) {
 	 Functions
 \*               */
 
-func (sqlite SQLiteDB) GiveRole(keyid string, roles ...string) error {
+func (sqlite *SQLiteDB) GiveRole(keyid string, roles ...string) error {
 	query := ""
 	params := make([]string, len(roles)*2)
 	for i, role := range roles {
@@ -485,7 +484,7 @@ func (sqlite SQLiteDB) GiveRole(keyid string, roles ...string) error {
 	return nil
 }
 
-func (sqlite SQLiteDB) TakeRole(keyid string, roles ...string) error {
+func (sqlite *SQLiteDB) TakeRole(keyid string, roles ...string) error {
 	query := ""
 	params := make([]string, len(roles))
 	for i, role := range roles {
@@ -502,7 +501,7 @@ func (sqlite SQLiteDB) TakeRole(keyid string, roles ...string) error {
 	return nil
 }
 
-func (sqlite SQLiteDB) GrantPermission(permission *entities.Permission, roles ...string) []error {
+func (sqlite *SQLiteDB) GrantPermission(permission *entities.Permission, roles ...string) []error {
 	//resourceID string, operationType types.OperationType, denyAllow bool
 	var errs []error
 	var permissionID int
@@ -555,7 +554,7 @@ RevokePermission Removes a permission from the specified roles
 -Checks if any roles are still associated with that permission node
 -Removes the permission node by id if it has no associated roles
 */
-func (sqlite SQLiteDB) RevokePermission(permission *entities.Permission, roles ...string) error {
+func (sqlite *SQLiteDB) RevokePermission(permission *entities.Permission, roles ...string) error {
 	tx, e := sqlite.db.Begin()
 	if e != nil {
 		return e
@@ -600,7 +599,7 @@ func (sqlite SQLiteDB) RevokePermission(permission *entities.Permission, roles .
 	return nil
 }
 
-func (sqlite SQLiteDB) SetRateLimit(key *entities.Key, limit *entities.RateLimit) error {
+func (sqlite *SQLiteDB) SetRateLimit(key *entities.Key, limit *entities.RateLimit) error {
 	//TODO implement me
 	panic("implement me")
 }
@@ -610,17 +609,17 @@ func (sqlite SQLiteDB) SetRateLimit(key *entities.Key, limit *entities.RateLimit
 	 Deletion
 \*               */
 
-func (sqlite SQLiteDB) DeleteRole(name string) error {
+func (sqlite *SQLiteDB) DeleteRole(name string) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (sqlite SQLiteDB) DeleteKey(id string) error {
+func (sqlite *SQLiteDB) DeleteKey(id string) error {
 	//TODO implement me
 	panic("implement me")
 }
 
-func (sqlite SQLiteDB) DeleteResource(id string) error {
+func (sqlite *SQLiteDB) DeleteResource(id string) error {
 	//TODO implement me
 	panic("implement me")
 }
