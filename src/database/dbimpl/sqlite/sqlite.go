@@ -20,6 +20,8 @@ type SQLiteDB struct {
 	qm *QueryManager
 }
 
+const connParams = "?cache=shared&mode=rwc&_journal_mode=WAL"
+
 /////////////////////////////////////////
 //									   //
 /*-------------------------------------*\
