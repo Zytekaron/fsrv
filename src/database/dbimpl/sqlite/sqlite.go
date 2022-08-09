@@ -230,7 +230,8 @@ func (sqlite *SQLiteDB) CreateResource(resource *entities.Resource) error {
 	}
 
 	//insert resource with flags
-	_, err = tx.Exec("INSERT INTO Resources (resourceid,flags) VALUES (?, ?)", resource.ID, resource.Flags)
+	stmt := tx.Stmt(sqlite.qm.InsResourceData)
+	_, err = stmt.Exec(resource.ID, resource.Flags)
 	if err != nil {
 		return err
 	}
@@ -508,7 +509,7 @@ func (sqlite *SQLiteDB) GrantPermission(permission *entities.Permission, roles .
 	//begin transaction
 	tx, err := sqlite.db.Begin()
 	if err != nil {
-		errs = append(errs, errors.New("cannot begin transaction"))
+		errs = append(errs, err)
 		return errs
 	}
 
@@ -528,6 +529,12 @@ func (sqlite *SQLiteDB) GrantPermission(permission *entities.Permission, roles .
 			rollbackOrPanic(tx)
 			return errs
 		}
+		err = nil
+	}
+	if err != nil {
+		errs = append(errs, err)
+		rollbackOrPanic(tx)
+		return errs
 	}
 
 	//add roles to permission node
@@ -688,7 +695,12 @@ func (sqlite *SQLiteDB) createResourcePermission(tx *sql.Tx, resource *entities.
 			rolesAndPerms = append(rolesAndPerms, status)
 		}
 
-		_, err := tx.Exec("INSERT INTO Permissions (resourceid,permTypeRWMD,permTypeDenyAllow) VALUES "+query, rolesAndPerms...)
+		//todo:REMOVE TEST
+		stmt, err := tx.Prepare("INSERT INTO Permissions (resourceid,permTypeRWMD,permTypeDenyAllow) VALUES " + query)
+		_, err = stmt.Exec(rolesAndPerms...)
+		//todo:END
+
+		//_, err := tx.Exec("INSERT INTO Permissions (resourceid,permTypeRWMD,permTypeDenyAllow) VALUES "+query, rolesAndPerms...)
 		if err != nil {
 			return err
 		}
