@@ -231,7 +231,7 @@ func (sqlite SQLiteDB) CreateResource(resource *entities.Resource) error {
 	}
 
 	//insert resource with flags
-	_, err = tx.Exec("INSERT INTO Resources (resourceid, flags) VALUES (?, ?)", resource.ID, resource.Flags)
+	_, err = tx.Exec("INSERT INTO Resources (resourceid,flags) VALUES (?, ?)", resource.ID, resource.Flags)
 	if err != nil {
 		return err
 	}
@@ -342,7 +342,7 @@ func (sqlite SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
 	//todo: get roles by precedence using KeyRoleIntersect
 	var roles []string
 	var role string
-	roleRows, err := sqlite.db.Query("SELECT roleName FROM Roles JOIN KeyRoleIntersect KRI on Roles.roleid = KRI.roleid WHERE keyid = ? ORDER BY rolePrecedence", keyid)
+	roleRows, err := sqlite.db.Query("SELECT Roles.roleid FROM Roles JOIN KeyRoleIntersect KRI on Roles.roleid = KRI.roleid WHERE keyid = ? ORDER BY rolePrecedence", keyid)
 	err = rateRows.Scan(rateLimit.ID, rateLimit.Limit, rateLimit.Reset)
 	if err != nil {
 		return key, err
@@ -680,21 +680,17 @@ func (sqlite *SQLiteDB) createResourcePermission(tx *sql.Tx, resource *entities.
 	size := len(permMap)
 
 	if size > 0 {
-		query := ""
+		query := getNParams("(?,?,?),", size)
 		rolesAndPerms := make([]any, 0, size*3)
-		getNParams("(?,?,?),", size)
+
 		for _, status := range permMap {
 			//todo: check if strconv is the best idea for this (implement method for operationType?)
 			rolesAndPerms = append(rolesAndPerms, strconv.Itoa(int(operationType)))
 			rolesAndPerms = append(rolesAndPerms, resource.ID)
-			if status {
-				rolesAndPerms = append(rolesAndPerms, "1")
-			} else {
-				rolesAndPerms = append(rolesAndPerms, "0")
-			}
+			rolesAndPerms = append(rolesAndPerms, status)
 		}
 
-		_, err := tx.Exec("INSERT INTO Permissions (resourceid, permTypeRWMD, permTypeDenyAllow) VALUES "+query, rolesAndPerms...)
+		_, err := tx.Exec("INSERT INTO Permissions (resourceid,permTypeRWMD,permTypeDenyAllow) VALUES "+query, rolesAndPerms...)
 		if err != nil {
 			return err
 		}
