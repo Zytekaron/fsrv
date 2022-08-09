@@ -386,15 +386,16 @@ func (sqlite *SQLiteDB) GetResources(pageSize int, offset int) ([]*entities.Reso
 }
 
 func (sqlite *SQLiteDB) GetResourceIDs(pageSize int, offset int) ([]string, error) {
-	resourceIDs := make([]string, pageSize)
-	arrPos := 0
+	var resourceIDs []string
+	var id string
 	rows, err := sqlite.db.Query("SELECT resourceid FROM Resources LIMIT ? OFFSET ?", pageSize, offset)
 	if err != nil {
 		return resourceIDs, err
 	}
 
 	for rows.Next() {
-		err = rows.Scan(resourceIDs[arrPos])
+		err = rows.Scan(&id)
+		resourceIDs = append(resourceIDs, id)
 		if err != nil {
 			return resourceIDs, err
 		}
@@ -404,7 +405,15 @@ func (sqlite *SQLiteDB) GetResourceIDs(pageSize int, offset int) ([]string, erro
 }
 
 func (sqlite *SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, error) {
-	var perm entities.Resource
+	res := entities.Resource{
+		ID:          resourceid,
+		Flags:       0,
+		ReadNodes:   nil,
+		WriteNodes:  nil,
+		ModifyNodes: nil,
+		DeleteNodes: nil,
+	}
+
 	//get flags
 	rows, err := sqlite.db.Query("SELECT flags FROM Resources where resourceid = ?", resourceid)
 	if err != nil {
@@ -417,29 +426,29 @@ func (sqlite *SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, 
 	}
 
 	//get permission iterator
-	iter, roleperm, err2 := sqlite.getResourceRolePermIter(resourceid)
+	iter, roleperm, err := sqlite.getResourceRolePermIter(resourceid)
 	if err != nil {
-		return nil, err2
+		return nil, err
 	}
 
 	//get permissions
 	for iter() == nil {
 		switch roleperm.Perm.TypeRWMD {
 		case types.OperationRead:
-			perm.ReadNodes[roleperm.Role.ID] = roleperm.Perm.Status
+			res.ReadNodes[roleperm.Role.ID] = roleperm.Perm.Status
 		case types.OperationWrite:
-			perm.WriteNodes[roleperm.Role.ID] = roleperm.Perm.Status
+			res.WriteNodes[roleperm.Role.ID] = roleperm.Perm.Status
 		case types.OperationModify:
-			perm.ModifyNodes[roleperm.Role.ID] = roleperm.Perm.Status
+			res.ModifyNodes[roleperm.Role.ID] = roleperm.Perm.Status
 		case types.OperationDelete:
-			perm.DeleteNodes[roleperm.Role.ID] = roleperm.Perm.Status
+			res.DeleteNodes[roleperm.Role.ID] = roleperm.Perm.Status
 		default:
 			//todo: make into error
 			log.Println("[error] bad db state")
 		}
 	}
 
-	return &perm, nil
+	return &res, nil
 }
 
 func (sqlite *SQLiteDB) GetRoles(pageSize int, offset int) ([]string, error) {
