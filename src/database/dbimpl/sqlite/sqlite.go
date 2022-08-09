@@ -684,9 +684,8 @@ func (sqlite *SQLiteDB) createResourcePermission(tx *sql.Tx, resource *entities.
 		rolesAndPerms := make([]any, 0, size*3)
 
 		for _, status := range permMap {
-			//todo: check if strconv is the best idea for this (implement method for operationType?)
-			rolesAndPerms = append(rolesAndPerms, strconv.Itoa(int(operationType)))
 			rolesAndPerms = append(rolesAndPerms, resource.ID)
+			rolesAndPerms = append(rolesAndPerms, strconv.Itoa(int(operationType))) //todo: check if strconv is the best idea for this (implement method for operationType?)
 			rolesAndPerms = append(rolesAndPerms, status)
 		}
 
