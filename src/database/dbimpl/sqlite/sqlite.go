@@ -409,10 +409,10 @@ func (sqlite SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, e
 	return &perm, nil
 }
 
-func (sqlite SQLiteDB) GetRoles() ([]string, error) {
+func (sqlite SQLiteDB) GetRoles(pageSize int, offset int) ([]string, error) {
 	var role string
 	var roles []string
-	rows, err := sqlite.db.Query("SELECT roleName FROM Roles where roleTypeRK=0")
+	rows, err := sqlite.db.Query("SELECT roleid FROM Roles WHERE roleTypeRK=0 LIMIT ? OFFSET ?", pageSize, offset)
 	if err != nil {
 		return nil, err
 	}

@@ -35,7 +35,7 @@ type DBInterface interface {
 	GetResources(pageSize int, offset int) ([]*entities.Resource, error)
 	GetResourceIDs(pageSize int, offset int) ([]string, error)
 	GetResourceData(resourceid string) (*entities.Resource, error)
-	GetRoles() ([]string, error) //
+	GetRoles(pageSize int, offset int) ([]string, error)
 
 	GiveRole(keyid string, role ...string) error
 	TakeRole(keyid string, role ...string) error
