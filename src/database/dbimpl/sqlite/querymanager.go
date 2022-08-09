@@ -25,6 +25,7 @@ type QueryManager struct {
 	InsPermissionData                            *sql.Stmt
 	GetPKOfLastInserted                          *sql.Stmt
 	GetRolePermIntersectReferencesByPermissionID *sql.Stmt
+	InsRolePermIntersectData                     *sql.Stmt
 	DelPermissionByID                            *sql.Stmt
 }
 
@@ -105,6 +106,10 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 		return qm, err
 	}
 	qm.GetRolePermIntersectReferencesByPermissionID, err = db.Prepare("SELECT COUNT(permissionid) FROM RolePermIntersect WHERE permissionid = ?") //RevokePermission
+	if err != nil {
+		return qm, err
+	}
+	qm.InsRolePermIntersectData, err = db.Prepare("INSERT INTO RolePermIntersect (roleid, permissionid) VALUES (?,?)")
 	if err != nil {
 		return qm, err
 	}

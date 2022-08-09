@@ -683,26 +683,29 @@ func (sqlite *SQLiteDB) getResourceRolePermIter(resourceID string) (func() error
 }
 
 func (sqlite *SQLiteDB) createResourcePermission(tx *sql.Tx, resource *entities.Resource, permMap map[string]bool, operationType types.OperationType) error {
-	size := len(permMap)
+	var err error
+	var allowID int64 = -1
+	var denyID int64 = -1
 
-	if size > 0 {
-		query := getNParams("(?,?,?),", size)
-		rolesAndPerms := make([]any, 0, size*3)
-
-		for _, status := range permMap {
-			rolesAndPerms = append(rolesAndPerms, resource.ID)
-			rolesAndPerms = append(rolesAndPerms, strconv.Itoa(int(operationType))) //todo: check if strconv is the best idea for this (implement method for operationType?)
-			rolesAndPerms = append(rolesAndPerms, status)
-		}
-
-		//todo:REMOVE TEST
-		stmt, err := tx.Prepare("INSERT INTO Permissions (resourceid,permTypeRWMD,permTypeDenyAllow) VALUES " + query)
-		_, err = stmt.Exec(rolesAndPerms...)
-		//todo:END
-
-		//_, err := tx.Exec("INSERT INTO Permissions (resourceid,permTypeRWMD,permTypeDenyAllow) VALUES "+query, rolesAndPerms...)
-		if err != nil {
-			return err
+	for role, status := range permMap {
+		if status && allowID == -1 {
+			allowID, err = sqlite.constructPermNode(tx, &entities.Permission{ResourceID: resource.ID, TypeRWMD: operationType, Status: status})
+			if err != nil {
+				return err
+			}
+			err = sqlite.grantPermNode(tx, allowID, role)
+			if err != nil {
+				return err
+			}
+		} else if denyID == -1 {
+			denyID, err = sqlite.constructPermNode(tx, &entities.Permission{ResourceID: resource.ID, TypeRWMD: operationType, Status: status})
+			if err != nil {
+				return err
+			}
+			err = sqlite.grantPermNode(tx, denyID, role)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -739,4 +742,36 @@ func getNParams(paramFormat string, n int) string {
 	queryParams = queryParams[:len(queryParams)-1]
 
 	return queryParams
+}
+
+//get permissionID of existing node or construct new permission node
+func (sqlite *SQLiteDB) constructPermNode(tx *sql.Tx, permission *entities.Permission) (permissionID int64, err error) {
+	stmt := tx.Stmt(sqlite.qm.GetPermissionIDByData)
+	row := stmt.QueryRow(permission.ResourceID, permission.TypeRWMD, permission.Status)
+	err = row.Scan(permissionID)
+	if err == sql.ErrNoRows {
+		stmt = tx.Stmt(sqlite.qm.InsPermissionData)
+		res, err := stmt.Exec(permission.ResourceID, permission.TypeRWMD, permission.Status)
+		if err != nil {
+			rollbackOrPanic(tx)
+			return -1, err
+		}
+		permissionID, err = res.LastInsertId()
+	} else if err != nil {
+		rollbackOrPanic(tx)
+		return -1, err
+	}
+	return permissionID, nil
+}
+
+//todo:consider using in GrantPermission
+//add roles to permission node
+func (sqlite *SQLiteDB) grantPermNode(tx *sql.Tx, permissionID int64, role string) error {
+	stmt := tx.Stmt(sqlite.qm.InsRolePermIntersectData)
+	_, err := stmt.Exec(role, permissionID)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+	return nil
 }
