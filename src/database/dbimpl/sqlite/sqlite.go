@@ -261,8 +261,26 @@ func (sqlite SQLiteDB) CreateResource(resource *entities.Resource) error {
 }
 
 func (sqlite SQLiteDB) CreateRole(role *entities.Role) error {
-	//note:roleTypeRK (0 = role, 1 = key)
-	_, err := sqlite.db.Exec("INSERT INTO Roles (roleName, rolePrecedence, roleTypeRK) VALUES (?, ?, 0)", role.ID, role.Precedence)
+	tx, err := sqlite.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt := tx.Stmt(sqlite.qm.InsRoleData)
+	res, err := stmt.Exec(role.ID, 0, role.Precedence)
+	if err != nil {
+		return err
+	}
+	rowsInserted, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowsInserted == 0 {
+		return sql.ErrNoRows
+	}
+	err = tx.Commit()
+	if err != nil {
+		return err
+	}
 	return err
 }
 
