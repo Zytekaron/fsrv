@@ -386,7 +386,7 @@ func (sqlite *SQLiteDB) GetResources(pageSize int, offset int) ([]*entities.Reso
 }
 
 func (sqlite *SQLiteDB) GetResourceIDs(pageSize int, offset int) ([]string, error) {
-	resourceIDs := make([]string, 0, pageSize)
+	resourceIDs := make([]string, pageSize)
 	arrPos := 0
 	rows, err := sqlite.db.Query("SELECT resourceid FROM Resources LIMIT ? OFFSET ?", pageSize, offset)
 	if err != nil {
@@ -748,7 +748,7 @@ func getNParams(paramFormat string, n int) string {
 func (sqlite *SQLiteDB) constructPermNode(tx *sql.Tx, permission *entities.Permission) (permissionID int64, err error) {
 	stmt := tx.Stmt(sqlite.qm.GetPermissionIDByData)
 	row := stmt.QueryRow(permission.ResourceID, permission.TypeRWMD, permission.Status)
-	err = row.Scan(permissionID)
+	err = row.Scan(&permissionID)
 	if err == sql.ErrNoRows {
 		stmt = tx.Stmt(sqlite.qm.InsPermissionData)
 		res, err := stmt.Exec(permission.ResourceID, permission.TypeRWMD, permission.Status)
