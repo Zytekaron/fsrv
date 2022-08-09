@@ -17,6 +17,7 @@ import _ "embed"
 
 type SQLiteDB struct {
 	db *sql.DB
+	qm *QueryManager
 }
 
 /////////////////////////////////////////
@@ -36,30 +37,48 @@ type SQLiteDB struct {
 var sqliteDatabaseCreationQuery string
 
 func Create(databaseFile string) (*SQLiteDB, error) {
-	db, err := sql.Open("sqlite3", databaseFile)
+	db, err := sql.Open("sqlite3", databaseFile+connParams)
 	if err != nil {
 		return nil, err
 	}
 
-	err = SQLiteDB{db}.Destroy()
+	sqliteDB := SQLiteDB{db, nil}
+
+	err = sqliteDB.Destroy()
 	if err != nil {
 		return nil, err
 	}
 
 	_, err = db.Exec(sqliteDatabaseCreationQuery)
-
 	if err != nil {
 		return nil, err
 	}
-	return &SQLiteDB{db}, nil
+
+	sqliteDB.qm, err = NewQueryManager(db)
+	if err != nil {
+		return nil, err
+	}
+
+	return &sqliteDB, nil
 }
 
 func Open(databaseFile string) (*SQLiteDB, error) {
-	db, err := sql.Open("sqlite3", databaseFile)
+	db, err := sql.Open("sqlite3", databaseFile+connParams)
 	if err != nil {
 		return nil, err
 	}
-	return &SQLiteDB{db}, nil
+
+	qm, err := NewQueryManager(db)
+	if err != nil {
+		return nil, err
+	}
+
+	sqliteDB := SQLiteDB{db, qm}
+	if err != nil {
+		return nil, err
+	}
+
+	return &sqliteDB, nil
 }
 
 func Exists(databaseFile string) error {
