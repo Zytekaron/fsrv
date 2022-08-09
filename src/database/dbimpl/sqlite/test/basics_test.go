@@ -57,6 +57,7 @@ func makeRoles(db dbutil.DBInterface) error {
 		150:  "gold",
 		1000: "diamond",
 	}
+
 	for k, v := range roleTable {
 		err := db.CreateRole(&entities.Role{
 			ID:         v,
@@ -71,7 +72,7 @@ func makeRoles(db dbutil.DBInterface) error {
 
 func makeKeys(db dbutil.DBInterface) error {
 	k1 := entities.Key{
-		ID:      "q2w26DFu8dr5578x&4syd46e7",
+		ID:      "key_q2w26DFu8dr5578x&4syd46e7",
 		Comment: "rock guy",
 		Roles:   []string{"stone"},
 		RequestRateLimit: &entities.RateLimit{
@@ -83,13 +84,8 @@ func makeKeys(db dbutil.DBInterface) error {
 		CreatedAt: serde.Time(time.Now()),
 	}
 
-	err := db.CreateKey(&k1)
-	if err != nil {
-		return err
-	}
-
 	k2 := entities.Key{
-		ID:      "dr476FXC8drUXe%&SR5ujr",
+		ID:      "key_dr476FXC8drUXe%&SR5ujr",
 		Comment: "pebble person",
 		Roles:   []string{"stone"},
 		RequestRateLimit: &entities.RateLimit{
@@ -102,7 +98,7 @@ func makeKeys(db dbutil.DBInterface) error {
 	}
 
 	k3 := entities.Key{
-		ID:      "dfthcr5uyers57yerd5ydr567",
+		ID:      "key_dfthcr5uyers57yerd5ydr567",
 		Comment: "iron ingot wingnut",
 		Roles:   []string{"iron"},
 		RequestRateLimit: &entities.RateLimit{
@@ -115,7 +111,7 @@ func makeKeys(db dbutil.DBInterface) error {
 	}
 
 	k4 := entities.Key{
-		ID:      "gkfp989P$%WA$ETseTSETST$",
+		ID:      "key_gkfp989P$%WA$ETseTSETST$",
 		Comment: "Roles: stone & diamond",
 		Roles:   []string{"stone", "diamond"},
 		RequestRateLimit: &entities.RateLimit{
@@ -128,7 +124,7 @@ func makeKeys(db dbutil.DBInterface) error {
 	}
 
 	k5 := entities.Key{
-		ID:      "sdrySDRyDSrydrtyasWTT",
+		ID:      "key_sdrySDRyDSrydrtyasWTT",
 		Comment: "Roles: gold & iron",
 		Roles:   []string{"gold", "iron"},
 		RequestRateLimit: &entities.RateLimit{
@@ -153,35 +149,35 @@ func makeKeys(db dbutil.DBInterface) error {
 }
 
 func makeResources(db dbutil.DBInterface) error {
-	r1 := entities.Resource{
-		ID:          "",
-		Flags:       0,
-		ReadNodes:   nil,
-		WriteNodes:  nil,
-		ModifyNodes: nil,
-		DeleteNodes: nil,
+	res := []*entities.Resource{
+		{
+			ID:          "res_stoneWorld:WYRSRYssysysySrysrur6i98",
+			Flags:       0,
+			ReadNodes:   map[string]bool{"stone": true},
+			WriteNodes:  map[string]bool{"stone": true},
+			ModifyNodes: map[string]bool{"stone": true},
+			DeleteNodes: map[string]bool{"stone": true},
+		},
+
+		{
+			ID:          "res_publicReadAndModDiamondDelete:pu9ipuijpj0m0uji0ji0j0ji0",
+			Flags:       entities.FlagAuthedRead | entities.FlagAuthedModify,
+			ReadNodes:   nil,
+			WriteNodes:  nil,
+			ModifyNodes: nil,
+			DeleteNodes: map[string]bool{"diamond": true},
+		},
+
+		{
+			ID:          "res_READ:DiamondAllowStoneDeny,WRITE:IronAllowGoldDeny:qwdxqwdxawqxqwdqwd",
+			Flags:       0,
+			ReadNodes:   map[string]bool{"diamond": true, "stone": false},
+			WriteNodes:  map[string]bool{"gold": false, "iron": true},
+			ModifyNodes: nil,
+			DeleteNodes: nil,
+		},
 	}
 
-	r2 := entities.Resource{
-		ID:          "",
-		Flags:       0,
-		ReadNodes:   nil,
-		WriteNodes:  nil,
-		ModifyNodes: nil,
-		DeleteNodes: nil,
-	}
-
-	r3 := entities.Resource{
-		ID:          "",
-		Flags:       0,
-		ReadNodes:   nil,
-		WriteNodes:  nil,
-		ModifyNodes: nil,
-		DeleteNodes: nil,
-	}
-
-	//create resources
-	res := []*entities.Resource{&r1, &r2, &r3}
 	for _, r := range res {
 		err := db.CreateResource(r)
 		if err != nil {
