@@ -147,9 +147,10 @@ func (sqlite SQLiteDB) CreateKey(key *entities.Key) error {
 	if err != nil {
 		return err
 	}
+
 	//create key record
-	_, err = tx.Exec("INSERT INTO Keys (keyid, note, expires, created) VALUES (?, ?, ?, ?)",
-		key.ID, key.Comment, time.Time(key.ExpiresAt).UnixMilli(), time.Time(key.CreatedAt).UnixMilli())
+	stmt := tx.Stmt(sqlite.qm.InsKeyData)
+	_, err = stmt.Exec(key.ID, key.Comment, time.Time(key.ExpiresAt).UnixMilli(), time.Time(key.CreatedAt).UnixMilli())
 	if err != nil {
 		rollbackOrPanic(tx)
 		return err
@@ -157,39 +158,51 @@ func (sqlite SQLiteDB) CreateKey(key *entities.Key) error {
 
 	//add RateLimit if exists
 	if key.RequestRateLimit != nil {
-		_, err = tx.Exec("INSERT INTO Ratelimits (ratelimitid, requests, reset) VALUES (?, ?, ?)",
-			key.RequestRateLimit.ID, key.RequestRateLimit.Limit, time.Duration(key.RequestRateLimit.Reset).Milliseconds())
-		if err != nil {
-			rollbackOrPanic(tx)
-			return err
+		stmt = tx.Stmt(sqlite.qm.GetRateLimitIDIfExists)
+		row := stmt.QueryRow(key.RequestRateLimit.ID)
+		var rtlimID string
+		err = row.Scan(&rtlimID)
+		if err != sql.ErrNoRows {
+			stmt = tx.Stmt(sqlite.qm.InsRateLimitData)
+			_, err = stmt.Exec(key.RequestRateLimit.ID, key.RequestRateLimit.Limit, time.Duration(key.RequestRateLimit.Reset).Milliseconds())
+			if err != nil {
+				rollbackOrPanic(tx)
+				return err
+			}
 		}
 	}
 
 	//add Roles
-	var rows *sql.Rows
-	var roleid int
+	var roleid string
 	for _, role := range key.Roles {
-		rows, err = sqlite.db.Query("SELECT roleid FROM Roles WHERE roleName = ?", role)
-		if err != nil {
-			rollbackOrPanic(tx)
-			return err
-		}
-		rows.Next()
-		err = rows.Scan(roleid)
+		//check if key role exists
+		stmt = tx.Stmt(sqlite.qm.GetRoleIDIfExists)
+		row := stmt.QueryRow(role)
+		err = row.Scan(&roleid) //produces sql.ErrNoRows if role does not exist
 		if err != nil {
 			rollbackOrPanic(tx)
 			return err
 		}
 
-		_, err = sqlite.db.Query("INSERT INTO KeyRoleIntersect (keyid, roleid) VALUES (?, ?)", key.ID, roleid)
+		//insert Role into KeyRoleIntersect //todo:make function
+		stmt = tx.Stmt(sqlite.qm.InsKeyRoleIntersectData)
+		_, err = stmt.Exec(key.ID, roleid)
 		if err != nil {
 			rollbackOrPanic(tx)
 			return err
 		}
 	}
 
-	//add KeyRole //todo: ensure that precedence ordering is consistent
-	_, err = sqlite.db.Query("INSERT INTO Roles (roleName, roleTypeRK, rolePrecedence) VALUES (?, 1, 10000)", key.ID)
+	//insert KeyRole into roles //todo: ensure that precedence ordering is consistent
+	stmt = tx.Stmt(sqlite.qm.InsRoleData)
+	_, err = stmt.Exec(key.ID, 1, 10000)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+	//Insert KeyRole into KeyRoleIntersect
+	stmt = tx.Stmt(sqlite.qm.InsKeyRoleIntersectData)
+	_, err = stmt.Exec(key.ID, key.ID)
 	if err != nil {
 		rollbackOrPanic(tx)
 		return err
