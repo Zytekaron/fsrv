@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"database/sql"
+	_ "embed"
 	"log"
 	"reflect"
 )
@@ -26,8 +27,12 @@ type QueryManager struct {
 	GetPKOfLastInserted                          *sql.Stmt
 	GetRolePermIntersectReferencesByPermissionID *sql.Stmt
 	InsRolePermIntersectData                     *sql.Stmt
+	GetResourceRoles                             *sql.Stmt
 	DelPermissionByID                            *sql.Stmt
 }
+
+//go:embed readqueries/getResourceRoles.sql
+var sqliteGetResourceRoles string
 
 func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	//create obj
@@ -110,6 +115,10 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 		return qm, err
 	}
 	qm.InsRolePermIntersectData, err = db.Prepare("INSERT INTO RolePermIntersect (roleid, permissionid) VALUES (?,?)")
+	if err != nil {
+		return qm, err
+	}
+	qm.GetResourceRoles, err = db.Prepare(sqliteGetResourceRoles)
 	if err != nil {
 		return qm, err
 	}

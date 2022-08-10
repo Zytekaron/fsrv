@@ -654,9 +654,6 @@ func (sqlite *SQLiteDB) getRateLimit(keyid string) (*entities.RateLimit, error) 
 	}, nil
 }
 
-//go:embed readqueries/getResourceRoles.sql
-var sqliteGetResourceRoles string
-
 // getResourceRoles
 func (sqlite *SQLiteDB) getResourceRolePermIter(tx *sql.Tx, resourceID string) (func() error, *entities.RolePerm, error) {
 	stmt := tx.Stmt(sqlite.qm.GetResourceRoles)
