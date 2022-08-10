@@ -511,54 +511,31 @@ func (sqlite *SQLiteDB) TakeRole(keyid string, roles ...string) error {
 	return nil
 }
 
-func (sqlite *SQLiteDB) GrantPermission(permission *entities.Permission, roles ...string) []error {
-	//resourceID string, operationType types.OperationType, denyAllow bool
-	var errs []error
-	var permissionID int
+func (sqlite *SQLiteDB) GrantPermission(permission *entities.Permission, roles ...string) error {
 	//begin transaction
 	tx, err := sqlite.db.Begin()
 	if err != nil {
-		errs = append(errs, err)
-		return errs
+		rollbackOrPanic(tx)
+		return err
 	}
 
 	//get permissionid of existing/new permission node
-	row := tx.QueryRow("SELECT permissionid FROM Permissions WHERE resourceid = ? AND permTypeRWMD = ? AND permTypeDenyAllow = ?", permission.ResourceID, permission.TypeRWMD, permission.Status)
-	err = row.Scan(permissionID)
-	if err == sql.ErrNoRows {
-		_, err = tx.Query("INSERT INTO Permissions (resourceid, permTypeRWMD, permTypeDenyAllow) VALUES (?, ?, ?)", permission.ResourceID, permission.TypeRWMD, permission.Status)
-		if err != nil {
-			errs = append(errs, err)
-			rollbackOrPanic(tx)
-			return errs
-		}
-		row = tx.QueryRow("SELECT last_insert_rowid()")
-		if err != nil {
-			errs = append(errs, err)
-			rollbackOrPanic(tx)
-			return errs
-		}
-		err = nil
-	}
+	permissionID, err := sqlite.constructPermNode(tx, permission)
 	if err != nil {
-		errs = append(errs, err)
 		rollbackOrPanic(tx)
-		return errs
+		return err
 	}
 
 	//add roles to permission node
-	query := getNParams("(?,?),", len(roles))
-	params := make([]string, len(roles)*2)
-	for i, role := range roles {
-		params[i*2] = role
-		params[i*2+1] = strconv.Itoa(permissionID)
+	for _, role := range roles {
+		err = sqlite.grantPermNode(tx, permissionID, role)
+		if err != nil {
+			rollbackOrPanic(tx)
+			return err
+		}
 	}
-	_, err = tx.Query("INSERT INTO RolePermIntersect (roleid, permissionid) VALUES"+query, params)
-	if err != nil {
-		errs = append(errs, err)
-		rollbackOrPanic(tx)
-		return errs
-	}
+
+	commitOrPanic(tx)
 
 	return nil
 }

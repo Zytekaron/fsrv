@@ -219,7 +219,7 @@ func makeResources(db *SQLiteDB) error {
 	return nil
 }
 
-func grantPermissionsPostHoc(db *SQLiteDB) []error {
+func grantPermissionsPostHoc(db *SQLiteDB) error {
 	return db.GrantPermission(&entities.Permission{
 		ResourceID: "res_READ:fake_roles,WRITE:fakeAndReal",
 		TypeRWMD:   0,
@@ -231,7 +231,7 @@ func getResourcePermData(t *testing.T, db *SQLiteDB, ids []string) (errs []error
 	for i, id := range ids {
 		t.Logf("%d: [ID=%s]\n", i, id)
 		data, err := db.GetResourceData(id)
-		if err != nil {
+		if err == nil {
 			t.Log(data)
 		} else {
 			errs = append(errs, err)
@@ -245,7 +245,7 @@ func TestSQLite(t *testing.T) {
 	bap(t, makeRoles(db))
 	bap(t, makeResources(db))
 	bap(t, makeKeys(db))
-	bap(t, grantPermissionsPostHoc(db)...)
+	bap(t, grantPermissionsPostHoc(db))
 	resources, err := db.GetResourceIDs(1000, 0)
 	bap(t, err)
 	bap(t, getResourcePermData(t, db, resources)...)

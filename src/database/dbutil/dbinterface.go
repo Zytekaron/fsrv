@@ -39,7 +39,7 @@ type DBInterface interface {
 
 	GiveRole(keyid string, role ...string) error
 	TakeRole(keyid string, role ...string) error
-	GrantPermission(permission *entities.Permission, role ...string) []error
+	GrantPermission(permission *entities.Permission, role ...string) error
 	RevokePermission(permission *entities.Permission, role ...string) error
 	SetRateLimit(key *entities.Key, limit *entities.RateLimit) error
 
