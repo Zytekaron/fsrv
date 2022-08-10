@@ -75,8 +75,8 @@ func makeKeys(db *SQLiteDB) error {
 		ID:      "key_q2w26DFu8dr5578x&4syd46e7",
 		Comment: "rock guy",
 		Roles:   []string{"stone"},
-		RequestRateLimit: &entities.RateLimit{
-			ID:    "DEPRECATED",
+		RequestRateLimit: &entities.RateLimit{ //todo: determine if RequestRateLimit is allowed to be nil (status: GetKeyData permits this, but CreateKey does not)
+			ID:    "DEFAULT",
 			Limit: 100,
 			Reset: 60,
 		},
@@ -89,8 +89,8 @@ func makeKeys(db *SQLiteDB) error {
 		Comment: "pebble person",
 		Roles:   []string{"stone"},
 		RequestRateLimit: &entities.RateLimit{
-			ID:    "DEPRECATED",
-			Limit: 100,
+			ID:    "DEFAULT",
+			Limit: 150, //todo: examine if its acceptable that after a ratelimitID exists, its limit and reset aren't mutable through CreateKey (100 is used here)
 			Reset: 60,
 		},
 		ExpiresAt: serde.Time(time.Now().AddDate(0, 8, 0)),
@@ -102,7 +102,7 @@ func makeKeys(db *SQLiteDB) error {
 		Comment: "iron ingot wingnut",
 		Roles:   []string{"iron"},
 		RequestRateLimit: &entities.RateLimit{
-			ID:    "DEPRECATED",
+			ID:    "DEFAULT",
 			Limit: 200,
 			Reset: 60,
 		},
@@ -115,7 +115,7 @@ func makeKeys(db *SQLiteDB) error {
 		Comment: "Roles: stone & diamond",
 		Roles:   []string{"stone", "diamond"},
 		RequestRateLimit: &entities.RateLimit{
-			ID:    "DEPRECATED",
+			ID:    "high limit",
 			Limit: 500,
 			Reset: 60,
 		},
@@ -128,9 +128,9 @@ func makeKeys(db *SQLiteDB) error {
 		Comment: "Roles: gold & iron",
 		Roles:   []string{"gold", "iron"},
 		RequestRateLimit: &entities.RateLimit{
-			ID:    "DEPRECATED",
-			Limit: 500,
-			Reset: 60,
+			ID:    "LowLimitFastReset",
+			Limit: 10,
+			Reset: 5,
 		},
 		ExpiresAt: serde.Time(time.Now().AddDate(0, 0, 4)),
 		CreatedAt: serde.Time(time.Now()),
@@ -219,12 +219,37 @@ func makeResources(db *SQLiteDB) error {
 	return nil
 }
 
-func grantPermissionsPostHoc(db *SQLiteDB) error {
-	return db.GrantPermission(&entities.Permission{
-		ResourceID: "res_READ:fake_roles,WRITE:fakeAndReal",
-		TypeRWMD:   0,
-		Status:     true,
-	}, "diamond")
+func grantPermissionsPostHoc(db *SQLiteDB) (errs []error) {
+	roleperms := map[*entities.Permission][]string{
+		&entities.Permission{
+			ResourceID: "res_READ:fake_roles,WRITE:fakeAndReal",
+			TypeRWMD:   0,
+			Status:     true,
+		}: {"diamond"},
+		&entities.Permission{
+			ResourceID: "res_READ:fake_roles,WRITE:fakeAndReal",
+			TypeRWMD:   0,
+			Status:     true,
+		}: {"iron, gold, pyrite"},
+		&entities.Permission{
+			ResourceID: "Bad Resource id",
+			TypeRWMD:   2,
+			Status:     false,
+		}: {"gold"},
+		&entities.Permission{
+			ResourceID: "res_READ:fake_roles,WRITE:fakeAndReal",
+			TypeRWMD:   6, //todo: fix accepting bad permission type
+			Status:     true,
+		}: {"diamond, obsidian"},
+	}
+
+	for k, v := range roleperms {
+		err := db.GrantPermission(k, v...)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+	return errs
 }
 
 func getResourcePermData(t *testing.T, db *SQLiteDB, ids []string) (errs []error) {
@@ -240,13 +265,35 @@ func getResourcePermData(t *testing.T, db *SQLiteDB, ids []string) (errs []error
 	return errs
 }
 
+func getRatelimitsForAllKeys(t *testing.T, db *SQLiteDB, ids []string) (errs []error) {
+	for _, id := range ids {
+		keyData, err := db.GetKeyData(id)
+
+		if err != nil {
+			errs = append(errs, err)
+		} else {
+			t.Logf("KeyID: %s", id)
+			if keyData.RequestRateLimit == nil {
+				t.Log(">RequestRateLimit is nil")
+			} else {
+				t.Log(keyData.RequestRateLimit)
+			}
+		}
+	}
+	return errs
+}
+
 func TestSQLite(t *testing.T) {
 	db := getDB()
 	bap(t, makeRoles(db))
 	bap(t, makeResources(db))
 	bap(t, makeKeys(db))
-	bap(t, grantPermissionsPostHoc(db))
+	bap(t, grantPermissionsPostHoc(db)...)
 	resources, err := db.GetResourceIDs(1000, 0)
 	bap(t, err)
 	bap(t, getResourcePermData(t, db, resources)...)
+	keys, err := db.GetKeyIDs(1000, 0)
+	bap(t, err)
+	bap(t, getRatelimitsForAllKeys(t, db, keys)...)
+
 }
