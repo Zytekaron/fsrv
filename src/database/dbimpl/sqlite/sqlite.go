@@ -45,11 +45,6 @@ func Create(databaseFile string) (*SQLiteDB, error) {
 
 	sqliteDB := SQLiteDB{db, nil}
 
-	err = sqliteDB.Destroy()
-	if err != nil {
-		return nil, err
-	}
-
 	_, err = db.Exec(sqliteDatabaseCreationQuery)
 	if err != nil {
 		return nil, err
