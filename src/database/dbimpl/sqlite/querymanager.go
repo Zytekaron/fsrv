@@ -40,7 +40,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	qm = &queryManager
 
 	//Insert Operations
-	qm.InsKeyData, err = db.Prepare("INSERT INTO Keys (keyid, note, expires, created) VALUES (?, ?, ?, ?)") //CreateKey
+	qm.InsKeyData, err = db.Prepare("INSERT INTO Keys (keyid, note, ratelimitid, expires, created) VALUES (?, ?, ?, ?, ?)") //CreateKey
 	if err != nil {
 		return qm, err
 	}
@@ -82,7 +82,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.GetRateLimitDataByID, err = db.Prepare("SELECT ratelimitid, requests, reset FROM Ratelimits WHERE ratelimitid = ?") //GetKeyData
+	qm.GetRateLimitDataByID, err = db.Prepare("SELECT requests, reset FROM Ratelimits WHERE ratelimitid = ?") //GetKeyData
 	if err != nil {
 		return qm, err
 	}

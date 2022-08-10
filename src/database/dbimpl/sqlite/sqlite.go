@@ -325,48 +325,67 @@ func (sqlite *SQLiteDB) GetKeyIDs(pageSize int, offset int) ([]string, error) {
 }
 
 func (sqlite *SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
-	var key *entities.Key = nil
+	var key entities.Key
+	var rtlimID sql.NullString
 	var createMS, expireMS int64
-	keyRows, err := sqlite.db.Query("SELECT note, ratelimitid, created, expires FROM Keys WHERE keyid = ?", keyid)
+
+	//begin transaction
+	tx, err := sqlite.db.Begin()
 	if err != nil {
-		return key, err
+		_ = tx.Rollback()
+		return nil, err
 	}
 
-	//todo: consider combining with main key query using join
-	var rateLimitID string
-	var rateLimit entities.RateLimit
-	rateRows, err := sqlite.db.Query("SELECT ratelimitid, requests, reset FROM Ratelimits WHERE ratelimitid = ?", rateLimitID)
+	//get base key data
+	stmtGetBaseData := tx.Stmt(sqlite.qm.GetKeyData)
+	row := stmtGetBaseData.QueryRow(keyid)
+	err = row.Scan(&key.Comment, &rtlimID, &createMS, &expireMS)
 	if err != nil {
-		return key, err
+		_ = tx.Rollback()
+		return nil, err
 	}
 
-	//todo: get roles by precedence using KeyRoleIntersect
-	var roles []string
-	var role string
-	roleRows, err := sqlite.db.Query("SELECT Roles.roleid FROM Roles JOIN KeyRoleIntersect KRI on Roles.roleid = KRI.roleid WHERE keyid = ? ORDER BY rolePrecedence", keyid)
-	err = rateRows.Scan(rateLimit.ID, rateLimit.Limit, rateLimit.Reset)
-	if err != nil {
-		return key, err
-	}
-	err = keyRows.Scan(key.Comment, rateLimitID, createMS, expireMS)
-	if err != nil {
-		return key, err
-	}
-	for roleRows.Next() {
-		err = roleRows.Scan(role)
+	//get RateLimit
+	if rtlimID.Valid {
+		var rateLimit entities.RateLimit
+		stmtGetRtLim := tx.Stmt(sqlite.qm.GetRateLimitDataByID)
+		row = stmtGetRtLim.QueryRow(rtlimID)
+		err = row.Scan(&rateLimit.Limit, &rateLimit.Reset)
 		if err != nil {
-			return key, err
+			_ = tx.Rollback()
+			return nil, err
 		}
-		roles = append(roles, role)
+		rateLimit.ID = rtlimID.String
+		key.RequestRateLimit = &rateLimit
+	} else {
+		key.RequestRateLimit = nil
 	}
 
+	//get Roles
+	stmtGetRoles := tx.Stmt(sqlite.qm.GetRolesByKeyIDOrdered)
+	rows, err := stmtGetRoles.Query(keyid)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	var role string
+	for rows.Next() {
+		err = rows.Scan(&role)
+		if err != nil {
+			_ = tx.Rollback()
+			return nil, err
+		}
+		key.Roles = append(key.Roles, role)
+	}
+
+	//finish building key
 	key.ID = keyid
 	key.CreatedAt = serde.Time(time.UnixMilli(createMS))
 	key.ExpiresAt = serde.Time(time.UnixMilli(expireMS))
-	key.RequestRateLimit = &rateLimit
-	key.Roles = roles //todo: add roles to key struct
 
-	return key, nil
+	commitOrPanic(tx)
+
+	return &key, nil
 }
 
 func (sqlite *SQLiteDB) GetResources(pageSize int, offset int) ([]*entities.Resource, error) {
