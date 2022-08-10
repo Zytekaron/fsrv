@@ -305,17 +305,23 @@ func (sqlite *SQLiteDB) GetKeys(pageSize int, offset int) ([]*entities.Key, erro
 }
 
 func (sqlite *SQLiteDB) GetKeyIDs(pageSize int, offset int) ([]string, error) {
-	keyIDs := make([]string, 0, pageSize)
-	rows, err := sqlite.db.Query("SELECT keyid FROM Keys LIMIT ? OFFSET ?", pageSize, offset)
+	//todo: determine if this is okay to do outside of a transaction
+	var keyIDs []string
+	var id string
+	rows, err := sqlite.qm.GetKeyIDs.Query(pageSize, offset)
+	if err != nil {
+		return nil, err
+	}
 
-	for i := range keyIDs {
-		err = rows.Scan(keyIDs[i])
+	for rows.Next() {
+		err = rows.Scan(&id)
 		if err != nil {
 			return keyIDs, err
 		}
+		keyIDs = append(keyIDs, id)
 	}
 
-	return keyIDs, err
+	return keyIDs, nil
 }
 
 func (sqlite *SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
