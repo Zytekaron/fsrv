@@ -143,7 +143,7 @@ func (sqlite *SQLiteDB) CreateKey(key *entities.Key) error {
 
 	//create key record
 	stmt := tx.Stmt(sqlite.qm.InsKeyData)
-	_, err = stmt.Exec(key.ID, key.Comment, time.Time(key.ExpiresAt).UnixMilli(), time.Time(key.CreatedAt).UnixMilli())
+	_, err = stmt.Exec(key.ID, key.Comment, key.RequestRateLimit.ID, time.Time(key.ExpiresAt).UnixMilli(), time.Time(key.CreatedAt).UnixMilli())
 	if err != nil {
 		rollbackOrPanic(tx)
 		return err
@@ -155,13 +155,13 @@ func (sqlite *SQLiteDB) CreateKey(key *entities.Key) error {
 		row := stmt.QueryRow(key.RequestRateLimit.ID)
 		var rtlimID string
 		err = row.Scan(&rtlimID)
-		if err != sql.ErrNoRows {
+		if err == sql.ErrNoRows {
 			stmt = tx.Stmt(sqlite.qm.InsRateLimitData)
 			_, err = stmt.Exec(key.RequestRateLimit.ID, key.RequestRateLimit.Limit, time.Duration(key.RequestRateLimit.Reset).Milliseconds())
-			if err != nil {
-				rollbackOrPanic(tx)
-				return err
-			}
+		}
+		if err != nil {
+			rollbackOrPanic(tx)
+			return err
 		}
 	}
 
