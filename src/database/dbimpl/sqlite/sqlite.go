@@ -9,7 +9,6 @@ import (
 	"fsrv/src/types"
 	"fsrv/utils/serde"
 	"log"
-	"strconv"
 	"time"
 )
 import _ "github.com/mattn/go-sqlite3"
@@ -173,10 +172,11 @@ func (sqlite *SQLiteDB) CreateKey(key *entities.Key) error {
 
 	//add Roles
 	var roleid string
+	stmtGetRoleID := tx.Stmt(sqlite.qm.GetRoleIDIfExists)
+	stmtInsKRIData := tx.Stmt(sqlite.qm.InsKeyRoleIntersectData)
 	for _, role := range key.Roles {
 		//check if key role exists
-		stmt = tx.Stmt(sqlite.qm.GetRoleIDIfExists)
-		row := stmt.QueryRow(role)
+		row := stmtGetRoleID.QueryRow(role)
 		err = row.Scan(&roleid) //produces sql.ErrNoRows if role does not exist
 		if err != nil {
 			rollbackOrPanic(tx)
@@ -184,8 +184,7 @@ func (sqlite *SQLiteDB) CreateKey(key *entities.Key) error {
 		}
 
 		//insert Role into KeyRoleIntersect //todo:make function
-		stmt = tx.Stmt(sqlite.qm.InsKeyRoleIntersectData)
-		_, err = stmt.Exec(key.ID, roleid)
+		_, err = stmtInsKRIData.Exec(key.ID, roleid)
 		if err != nil {
 			rollbackOrPanic(tx)
 			return err
@@ -209,10 +208,6 @@ func (sqlite *SQLiteDB) CreateKey(key *entities.Key) error {
 
 	//commit transaction results
 	commitOrPanic(tx)
-	if err != nil {
-		rollbackOrPanic(tx)
-		return err
-	}
 
 	return nil
 }
