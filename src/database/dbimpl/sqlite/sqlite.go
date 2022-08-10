@@ -228,24 +228,29 @@ func (sqlite *SQLiteDB) CreateResource(resource *entities.Resource) error {
 	stmt := tx.Stmt(sqlite.qm.InsResourceData)
 	_, err = stmt.Exec(resource.ID, resource.Flags)
 	if err != nil {
+		rollbackOrPanic(tx)
 		return err
 	}
 
 	//insert permissions
 	err = sqlite.createResourcePermission(tx, resource, resource.ReadNodes, types.OperationRead)
 	if err != nil {
+		rollbackOrPanic(tx)
 		return err
 	}
 	err = sqlite.createResourcePermission(tx, resource, resource.WriteNodes, types.OperationWrite)
 	if err != nil {
+		rollbackOrPanic(tx)
 		return err
 	}
 	err = sqlite.createResourcePermission(tx, resource, resource.ModifyNodes, types.OperationModify)
 	if err != nil {
+		rollbackOrPanic(tx)
 		return err
 	}
 	err = sqlite.createResourcePermission(tx, resource, resource.DeleteNodes, types.OperationDelete)
 	if err != nil {
+		rollbackOrPanic(tx)
 		return err
 	}
 
@@ -263,19 +268,19 @@ func (sqlite *SQLiteDB) CreateRole(role *entities.Role) error {
 	stmt := tx.Stmt(sqlite.qm.InsRoleData)
 	res, err := stmt.Exec(role.ID, 0, role.Precedence)
 	if err != nil {
+		rollbackOrPanic(tx)
 		return err
 	}
 	rowsInserted, err := res.RowsAffected()
 	if err != nil {
+		rollbackOrPanic(tx)
 		return err
 	}
 	if rowsInserted == 0 {
+		rollbackOrPanic(tx)
 		return sql.ErrNoRows
 	}
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
+	commitOrPanic(tx)
 	return err
 }
 
