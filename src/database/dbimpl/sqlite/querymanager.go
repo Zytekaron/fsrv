@@ -89,7 +89,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.GetResourceFlagsByID, err = db.Prepare("SELECT flags FROM Resources where resourceid = ?") //GetResourceData
+	qm.GetResourceFlagsByID, err = db.Prepare("SELECT flags FROM Resources WHERE resourceid = ?") //GetResourceData
 	if err != nil {
 		return qm, err
 	}

@@ -413,20 +413,23 @@ func (sqlite *SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, 
 		ModifyNodes: nil,
 		DeleteNodes: nil,
 	}
-
-	//get flags
-	rows, err := sqlite.db.Query("SELECT flags FROM Resources where resourceid = ?", resourceid)
+	//begin transaction
+	tx, err := sqlite.db.Begin()
 	if err != nil {
 		return nil, err
 	}
 
-	err = rows.Scan(perm.ID)
+	//get flags
+	stmt := tx.Stmt(sqlite.qm.GetResourceFlagsByID)
+	row := stmt.QueryRow(resourceid)
+
+	err = row.Scan(&res.Flags)
 	if err != nil {
 		return nil, err
 	}
 
 	//get permission iterator
-	iter, roleperm, err := sqlite.getResourceRolePermIter(resourceid)
+	iter, roleperm, err := sqlite.getResourceRolePermIter(tx, resourceid)
 	if err != nil {
 		return nil, err
 	}
@@ -655,15 +658,17 @@ func (sqlite *SQLiteDB) getRateLimit(keyid string) (*entities.RateLimit, error) 
 var sqliteGetResourceRoles string
 
 // getResourceRoles
-func (sqlite *SQLiteDB) getResourceRolePermIter(resourceID string) (func() error, *entities.RolePerm, error) {
-	rows, err := sqlite.db.Query(sqliteGetResourceRoles, resourceID)
+func (sqlite *SQLiteDB) getResourceRolePermIter(tx *sql.Tx, resourceID string) (func() error, *entities.RolePerm, error) {
+	stmt := tx.Stmt(sqlite.qm.GetResourceRoles)
+	rows, err := stmt.Query(resourceID)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	var rolePerm entities.RolePerm
 	roleIterNext := func() error {
-		return rows.Scan(rolePerm.Role, rolePerm.Perm.Status, rolePerm.Perm.TypeRWMD)
+		rows.Next()
+		return rows.Scan(&rolePerm.Role, &rolePerm.Perm.Status, &rolePerm.Perm.TypeRWMD)
 	}
 	return roleIterNext, &rolePerm, nil
 }
