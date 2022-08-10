@@ -425,19 +425,13 @@ func (sqlite *SQLiteDB) GetResourceIDs(pageSize int, offset int) ([]string, erro
 }
 
 func (sqlite *SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, error) {
-	res := entities.Resource{
-		ID:          resourceid,
-		Flags:       0,
-		ReadNodes:   nil,
-		WriteNodes:  nil,
-		ModifyNodes: nil,
-		DeleteNodes: nil,
-	}
 	//begin transaction
 	tx, err := sqlite.db.Begin()
 	if err != nil {
 		return nil, err
 	}
+
+	var res entities.Resource
 
 	//get flags
 	stmt := tx.Stmt(sqlite.qm.GetResourceFlagsByID)
@@ -445,12 +439,14 @@ func (sqlite *SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, 
 
 	err = row.Scan(&res.Flags)
 	if err != nil {
+		_ = tx.Rollback()
 		return nil, err
 	}
 
 	//get permission iterator
 	iter, roleperm, err := sqlite.getResourceRolePermIter(tx, resourceid)
 	if err != nil {
+		_ = tx.Rollback()
 		return nil, err
 	}
 
@@ -470,6 +466,8 @@ func (sqlite *SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, 
 			log.Println("[error] bad db state")
 		}
 	}
+
+	_ = tx.Commit()
 
 	return &res, nil
 }
