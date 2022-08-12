@@ -183,6 +183,14 @@ func makeResources(db *SQLiteDB) error {
 			ModifyNodes: nil,
 			DeleteNodes: nil,
 		},
+		{
+			ID:          "res_C/R/U/D:[key: key_ancientEvil]",
+			Flags:       0,
+			ReadNodes:   map[string]bool{"key_ancientEvil": true},
+			WriteNodes:  map[string]bool{"key_ancientEvil": true},
+			ModifyNodes: map[string]bool{"key_ancientEvil": true},
+			DeleteNodes: map[string]bool{"key_ancientEvil": true},
+		},
 	}
 
 	for _, r := range res {
@@ -217,6 +225,11 @@ func grantPermissionsPostHoc(db *SQLiteDB) (errs []error) {
 			TypeRWMD:   6, //todo: fix accepting bad permission type
 			Status:     true,
 		}: {"diamond, obsidian"},
+		&entities.Permission{ //grant per key permission
+			ResourceID: "",
+			TypeRWMD:   0,
+			Status:     true,
+		}: {"key_dfthcr5uyers57yerd5ydr567"},
 	}
 
 	for k, v := range roleperms {
@@ -230,10 +243,25 @@ func grantPermissionsPostHoc(db *SQLiteDB) (errs []error) {
 
 func getResourcePermData(t *testing.T, db *SQLiteDB, ids []string) (errs []error) {
 	for i, id := range ids {
-		t.Logf("%d: [ID=%s]\n", i, id)
 		data, err := db.GetResourceData(id)
+		t.Logf("%d: [FLAGS=%d, ID=%s]\n", i, data.Flags, id)
 		if err == nil {
-			t.Log(data)
+			//t.Logf("ReadNodes:")
+			//for k, v := range data.ReadNodes {
+			//	t.Logf("%s:%t", k, v)
+			//}
+			//t.Logf("\nWriteNodes:")
+			//for k, v := range data.WriteNodes {
+			//	t.Logf("%s:%t", k, v)
+			//}
+			//t.Logf("\nModifyNodes:")
+			//for k, v := range data.ModifyNodes {
+			//	t.Logf("%s:%t", k, v)
+			//}
+			//t.Logf("\nDeleteNodes:")
+			//for k, v := range data.DeleteNodes {
+			//	t.Logf("%s:%t", k, v)
+			//}
 		} else {
 			errs = append(errs, err)
 		}
