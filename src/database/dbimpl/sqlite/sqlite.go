@@ -264,7 +264,7 @@ func (sqlite *SQLiteDB) CreateRole(role *entities.Role) error {
 }
 
 func (sqlite *SQLiteDB) CreateRateLimit(limit *entities.RateLimit) error {
-	_, err := sqlite.db.Query("INSERT INTO Ratelimits (ratelimitid, requests, reset) VALUES (?, ?, ?)", limit.ID, limit.Limit, limit.Reset)
+	_, err := sqlite.qm.InsRateLimitData.Exec(limit.ID, limit.Limit, limit.Reset)
 	return err
 }
 
