@@ -613,31 +613,26 @@ func (sqlite *SQLiteDB) DeleteResource(id string) error {
 \*-------------------------------------*/
 //									   //
 /////////////////////////////////////////
-
-//go:embed readqueries/getRateLimit.sql
-var sqliteGetRateLimit string
-
-//todo: REMOVE UNUSED
-//getRateLimit returns a RateLimit object for a given key
-func (sqlite *SQLiteDB) getRateLimit(keyid string) (*entities.RateLimit, error) {
-	rows, err := sqlite.db.Query(sqliteGetRateLimit)
-	var requests int
+func (sqlite *SQLiteDB) GetRateLimitData(ratelimitid string) (*entities.RateLimit, error) {
+	row := sqlite.qm.GetRateLimitDataByID.QueryRow(ratelimitid)
+	var rateLimit entities.RateLimit
 	var reset int64
+	err := row.Scan(&rateLimit.Limit, &reset)
 	if err != nil {
-		return nil, err
+		if err == sql.ErrNoRows {
+			return &entities.RateLimit{
+				ID:    "DEFAULT",
+				Limit: 0,
+				Reset: 0,
+			}, nil
+		} else {
+			return nil, err
+		}
 	}
-	err = rows.Scan(requests, reset)
-	if err != nil {
-		return nil, err
-	}
-	if rows.Next() {
-		return nil, errors.New("multiple rate limits exist for one key")
-	}
+	rateLimit.ID = ratelimitid
+	rateLimit.Reset = serde.Duration(reset * int64(time.Millisecond))
 
-	return &entities.RateLimit{
-		Limit: requests,
-		Reset: serde.Duration(reset * int64(time.Millisecond)),
-	}, nil
+	return &rateLimit, nil
 }
 
 // getResourceRoles
