@@ -28,7 +28,10 @@ type QueryManager struct {
 	GetRolePermIntersectReferencesByPermissionID *sql.Stmt
 	InsRolePermIntersectData                     *sql.Stmt
 	GetResourceRoles                             *sql.Stmt
+	GetKeyRateLimitID                            *sql.Stmt
+	UpdRateLimitData                             *sql.Stmt
 	DelPermissionByID                            *sql.Stmt
+	DelRateLimitByID                             *sql.Stmt
 }
 
 //go:embed readqueries/getResourceRoles.sql
@@ -122,12 +125,21 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
+	qm.GetKeyRateLimitID, err = db.Prepare("SELECT ratelimitid FROM Keys WHERE keyid=?")
+	if err != nil {
+		return qm, err
+	}
+	qm.UpdRateLimitData, err = db.Prepare("UPDATE Ratelimits SET ratelimitid = ?, requests=?, requests = ? WHERE ratelimitid = ?")
+	if err != nil {
+		return qm, err
+	}
 
 	//Delete operations
 	qm.DelPermissionByID, err = db.Prepare("DELETE FROM Permissions WHERE permissionid = ?") //RevokePermission
 	if err != nil {
 		return qm, err
 	}
+	qm.DelRateLimitByID, err = db.Prepare("DELETE FROM Ratelimits WHERE ratelimitid = ?") //DeleteRateLimit
 
 	//qm.q, err = db.Prepare("")
 	//if err != nil {

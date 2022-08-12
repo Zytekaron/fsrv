@@ -635,6 +635,53 @@ func (sqlite *SQLiteDB) GetRateLimitData(ratelimitid string) (*entities.RateLimi
 	return &rateLimit, nil
 }
 
+func (sqlite *SQLiteDB) GetKeyRateLimitID(keyid string) (string, error) {
+	var rtlimid sql.NullString
+	row := sqlite.qm.GetKeyRateLimitID.QueryRow(keyid)
+	err := row.Scan(&rtlimid)
+	if err != nil {
+		return "", err
+	}
+	if rtlimid.Valid {
+		return rtlimid.String, nil
+	} else {
+		return "", nil
+	}
+}
+
+func (sqlite *SQLiteDB) UpdateRateLimit(rateLimitID string, rateLimit *entities.RateLimit) error {
+	tx, err := sqlite.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt := tx.Stmt(sqlite.qm.UpdRateLimitData)
+	res, err := stmt.Exec(rateLimitID, rateLimit.ID, rateLimit.Limit, rateLimit.Reset)
+	if err != nil {
+		return err
+	}
+	rowNum, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if rowNum != 1 {
+		return errors.New(fmt.Sprintf("Failed to update rateLimit %d rows affected", rowNum))
+	}
+	return nil
+}
+
+func (sqlite *SQLiteDB) DeleteRateLimit(rateLimitID string) error {
+	tx, err := sqlite.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt := tx.Stmt(sqlite.qm.UpdRateLimitData)
+	_, err = stmt.Exec(rateLimitID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // getResourceRoles
 func (sqlite *SQLiteDB) getResourceRolePermIter(tx *sql.Tx, resourceID string) (func() error, *entities.RolePerm, error) {
 	stmt := tx.Stmt(sqlite.qm.GetResourceRoles)
