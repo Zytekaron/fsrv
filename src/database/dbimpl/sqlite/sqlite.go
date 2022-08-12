@@ -143,26 +143,10 @@ func (sqlite *SQLiteDB) CreateKey(key *entities.Key) error {
 
 	//create key record
 	stmt := tx.Stmt(sqlite.qm.InsKeyData)
-	_, err = stmt.Exec(key.ID, key.Comment, key.RequestRateLimit.ID, time.Time(key.ExpiresAt).UnixMilli(), time.Time(key.CreatedAt).UnixMilli())
+	_, err = stmt.Exec(key.ID, key.Comment, key.RateLimitID, time.Time(key.ExpiresAt).UnixMilli(), time.Time(key.CreatedAt).UnixMilli())
 	if err != nil {
 		rollbackOrPanic(tx)
 		return err
-	}
-
-	//add RateLimit if exists
-	if key.RequestRateLimit != nil {
-		stmt = tx.Stmt(sqlite.qm.GetRateLimitIDIfExists)
-		row := stmt.QueryRow(key.RequestRateLimit.ID)
-		var rtlimID string
-		err = row.Scan(&rtlimID)
-		if err == sql.ErrNoRows {
-			stmt = tx.Stmt(sqlite.qm.InsRateLimitData)
-			_, err = stmt.Exec(key.RequestRateLimit.ID, key.RequestRateLimit.Limit, time.Duration(key.RequestRateLimit.Reset).Milliseconds())
-		}
-		if err != nil {
-			rollbackOrPanic(tx)
-			return err
-		}
 	}
 
 	//add Roles
@@ -343,22 +327,6 @@ func (sqlite *SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
 	if err != nil {
 		_ = tx.Rollback()
 		return nil, err
-	}
-
-	//get RateLimit
-	if rtlimID.Valid {
-		var rateLimit entities.RateLimit
-		stmtGetRtLim := tx.Stmt(sqlite.qm.GetRateLimitDataByID)
-		row = stmtGetRtLim.QueryRow(rtlimID)
-		err = row.Scan(&rateLimit.Limit, &rateLimit.Reset)
-		if err != nil {
-			_ = tx.Rollback()
-			return nil, err
-		}
-		rateLimit.ID = rtlimID.String
-		key.RequestRateLimit = &rateLimit
-	} else {
-		key.RequestRateLimit = nil
 	}
 
 	//get Roles
