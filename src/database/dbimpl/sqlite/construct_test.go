@@ -72,81 +72,57 @@ func makeRoles(db *SQLiteDB) error {
 
 func makeKeys(db *SQLiteDB) error {
 	k1 := entities.Key{
-		ID:      "key_q2w26DFu8dr5578x&4syd46e7",
-		Comment: "rock guy",
-		Roles:   []string{"stone"},
-		RequestRateLimit: &entities.RateLimit{ //todo: determine if RequestRateLimit is allowed to be nil (status: GetKeyData permits this, but CreateKey does not)
-			ID:    "DEFAULT",
-			Limit: 100,
-			Reset: 60,
-		},
-		ExpiresAt: serde.Time(time.Now().AddDate(1, 0, 0)),
-		CreatedAt: serde.Time(time.Now()),
+		ID:          "key_q2w26DFu8dr5578x&4syd46e7",
+		Comment:     "rock guy",
+		Roles:       []string{"stone"},
+		RateLimitID: "DEFAULT",
+		ExpiresAt:   serde.Time(time.Now().AddDate(1, 0, 0)),
+		CreatedAt:   serde.Time(time.Now()),
 	}
 
 	k2 := entities.Key{
-		ID:      "key_dr476FXC8drUXe%&SR5ujr",
-		Comment: "pebble person",
-		Roles:   []string{"stone"},
-		RequestRateLimit: &entities.RateLimit{
-			ID:    "DEFAULT",
-			Limit: 150, //todo: examine if its acceptable that after a ratelimitID exists, its limit and reset aren't mutable through CreateKey (100 is used here)
-			Reset: 60,
-		},
-		ExpiresAt: serde.Time(time.Now().AddDate(0, 8, 0)),
-		CreatedAt: serde.Time(time.Now()),
+		ID:          "key_dr476FXC8drUXe%&SR5ujr",
+		Comment:     "pebble person",
+		Roles:       []string{"stone"},
+		RateLimitID: "DEFAULT",
+		ExpiresAt:   serde.Time(time.Now().AddDate(0, 8, 0)),
+		CreatedAt:   serde.Time(time.Now()),
 	}
 
 	k3 := entities.Key{
-		ID:      "key_dfthcr5uyers57yerd5ydr567",
-		Comment: "iron ingot wingnut",
-		Roles:   []string{"iron"},
-		RequestRateLimit: &entities.RateLimit{
-			ID:    "DEFAULT",
-			Limit: 200,
-			Reset: 60,
-		},
-		ExpiresAt: serde.Time(time.Now().AddDate(0, 6, 0)),
-		CreatedAt: serde.Time(time.Now()),
+		ID:          "key_dfthcr5uyers57yerd5ydr567",
+		Comment:     "iron ingot wingnut",
+		Roles:       []string{"iron"},
+		RateLimitID: "DEFAULT",
+		ExpiresAt:   serde.Time(time.Now().AddDate(0, 6, 0)),
+		CreatedAt:   serde.Time(time.Now()),
 	}
 
 	k4 := entities.Key{
-		ID:      "key_gkfp989P$%WA$ETseTSETST$",
-		Comment: "Roles: stone & diamond",
-		Roles:   []string{"stone", "diamond"},
-		RequestRateLimit: &entities.RateLimit{
-			ID:    "high limit",
-			Limit: 500,
-			Reset: 60,
-		},
-		ExpiresAt: serde.Time(time.Now().AddDate(0, 3, 0)),
-		CreatedAt: serde.Time(time.Now()),
+		ID:          "key_gkfp989P$%WA$ETseTSETST$",
+		Comment:     "Roles: stone & diamond",
+		Roles:       []string{"stone", "diamond"},
+		RateLimitID: "high limit",
+		ExpiresAt:   serde.Time(time.Now().AddDate(0, 3, 0)),
+		CreatedAt:   serde.Time(time.Now()),
 	}
 
 	k5 := entities.Key{
-		ID:      "key_sdrySDRyDSrydrtyasWTT",
-		Comment: "Roles: gold & iron",
-		Roles:   []string{"gold", "iron"},
-		RequestRateLimit: &entities.RateLimit{
-			ID:    "LowLimitFastReset",
-			Limit: 10,
-			Reset: 5,
-		},
-		ExpiresAt: serde.Time(time.Now().AddDate(0, 0, 4)),
-		CreatedAt: serde.Time(time.Now()),
+		ID:          "key_sdrySDRyDSrydrtyasWTT",
+		Comment:     "Roles: gold & iron",
+		Roles:       []string{"gold", "iron"},
+		RateLimitID: "LowLimitFastReset",
+		ExpiresAt:   serde.Time(time.Now().AddDate(0, 0, 4)),
+		CreatedAt:   serde.Time(time.Now()),
 	}
 
 	k6 := entities.Key{
-		ID:      "key_ancientEvil",
-		Comment: "ancient evil must be contained through strict ratelimits and permission control",
-		Roles:   []string{"obsidian"},
-		RequestRateLimit: &entities.RateLimit{
-			ID:    "STRICT_LIMIT",
-			Limit: 10,
-			Reset: 60,
-		},
-		ExpiresAt: serde.Time(time.Now().AddDate(9999, 0, 0)),
-		CreatedAt: serde.Time(time.Now()),
+		ID:          "key_ancientEvil",
+		Comment:     "ancient evil must be contained through strict ratelimits and permission control",
+		Roles:       []string{"obsidian"},
+		RateLimitID: "STRICT_LIMIT",
+		ExpiresAt:   serde.Time(time.Now().AddDate(9999, 0, 0)),
+		CreatedAt:   serde.Time(time.Now()),
 	}
 
 	//create keys
@@ -267,19 +243,45 @@ func getResourcePermData(t *testing.T, db *SQLiteDB, ids []string) (errs []error
 
 func getRatelimitsForAllKeys(t *testing.T, db *SQLiteDB, ids []string) (errs []error) {
 	for _, id := range ids {
-		keyData, err := db.GetKeyData(id)
-
+		limID, err := db.GetKeyRateLimitID(id)
+		if err != nil {
+			errs = append(errs, err)
+		}
+		lim, err := db.GetRateLimitData(limID)
 		if err != nil {
 			errs = append(errs, err)
 		} else {
-			t.Logf("KeyID: %s", id)
-			if keyData.RequestRateLimit == nil {
-				t.Log(">RequestRateLimit is nil")
-			} else {
-				t.Log(keyData.RequestRateLimit)
-			}
+			t.Logf("KeyID: %s, ratelimit:{id:%s, lim:%d, reset:%d }", id, lim.ID, lim.Limit, lim.Reset)
 		}
 	}
+	return errs
+}
+
+func giveRoles(t *testing.T, db *SQLiteDB) (errs []error) {
+
+	return errs
+}
+
+func takeRoles(t *testing.T, db *SQLiteDB) (errs []error) {
+
+	return errs
+}
+
+func createRateLimits(t *testing.T, db *SQLiteDB) (errs []error) {
+	limits := []entities.RateLimit{
+		{"DEFAULT", 20, 60},
+		{"high limit", 200, 60},
+		{"LowLimitFastReset", 2, 1},
+		{"STRICT_LIMIT", 1, 60},
+	}
+	var err error
+	for _, lim := range limits {
+		err = db.CreateRateLimit(&lim)
+		if err != nil {
+			errs = append(errs, err)
+		}
+	}
+
 	return errs
 }
 
@@ -287,6 +289,7 @@ func TestSQLite(t *testing.T) {
 	db := getDB()
 	bap(t, makeRoles(db))
 	bap(t, makeResources(db))
+	bap(t, createRateLimits(t, db)...)
 	bap(t, makeKeys(db))
 	bap(t, grantPermissionsPostHoc(db)...)
 	resources, err := db.GetResourceIDs(1000, 0)
@@ -295,5 +298,6 @@ func TestSQLite(t *testing.T) {
 	keys, err := db.GetKeyIDs(1000, 0)
 	bap(t, err)
 	bap(t, getRatelimitsForAllKeys(t, db, keys)...)
-
+	bap(t, giveRoles(t, db)...)
+	bap(t, takeRoles(t, db)...)
 }
