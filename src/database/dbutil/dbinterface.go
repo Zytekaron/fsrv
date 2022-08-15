@@ -42,6 +42,10 @@ type DBInterface interface {
 	GrantPermission(permission *entities.Permission, role ...string) error
 	RevokePermission(permission *entities.Permission, role ...string) error
 	SetRateLimit(key *entities.Key, limit *entities.RateLimit) error
+	GetRateLimitData(ratelimitid string) (*entities.RateLimit, error)
+	GetKeyRateLimitID(keyid string) (string, error)
+	UpdateRateLimit(rateLimitID string, rateLimit *entities.RateLimit) error
+	DeleteRateLimit(rateLimitID string) error
 
 	DeleteRole(name string) error
 	DeleteKey(id string) error

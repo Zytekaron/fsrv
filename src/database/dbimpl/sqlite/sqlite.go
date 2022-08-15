@@ -606,13 +606,6 @@ func (sqlite *SQLiteDB) DeleteResource(id string) error {
 	panic("implement me")
 }
 
-/////////////////////////////////////////
-//									   //
-/*-------------------------------------*\
-//       NON INTERFACE FUNCTIONS	   //
-\*-------------------------------------*/
-//									   //
-/////////////////////////////////////////
 func (sqlite *SQLiteDB) GetRateLimitData(ratelimitid string) (*entities.RateLimit, error) {
 	row := sqlite.qm.GetRateLimitDataByID.QueryRow(ratelimitid)
 	var rateLimit entities.RateLimit
@@ -682,6 +675,14 @@ func (sqlite *SQLiteDB) DeleteRateLimit(rateLimitID string) error {
 	return nil
 }
 
+/////////////////////////////////////////
+//									   //
+/*-------------------------------------*\
+//       NON INTERFACE FUNCTIONS	   //
+\*-------------------------------------*/
+//									   //
+/////////////////////////////////////////
+
 // getResourceRoles
 func (sqlite *SQLiteDB) getResourceRolePermIter(tx *sql.Tx, resourceID string) (func() error, *entities.RolePerm, error) {
 	stmt := tx.Stmt(sqlite.qm.GetResourceRoles)
@@ -742,10 +743,10 @@ func commitOrPanic(tx *sql.Tx) {
 	}
 }
 
-//returns a string containing n query parameters
-//useful for converting go arrays into multiple query parameters
-//The format is the pattern that is repeated n times
-//The last character in the paramFormat string is expected to be a "," so that it may be trimmed
+// returns a string containing n query parameters
+// useful for converting go arrays into multiple query parameters
+// The format is the pattern that is repeated n times
+// The last character in the paramFormat string is expected to be a "," so that it may be trimmed
 func getNParams(paramFormat string, n int) string {
 	if n < 1 {
 		panic("getNParams must not recieve a query number < 1")
@@ -760,7 +761,7 @@ func getNParams(paramFormat string, n int) string {
 	return queryParams
 }
 
-//get permissionID of existing node or construct new permission node
+// get permissionID of existing node or construct new permission node
 func (sqlite *SQLiteDB) constructPermNode(tx *sql.Tx, permission *entities.Permission) (permissionID int64, err error) {
 	stmt := tx.Stmt(sqlite.qm.GetPermissionIDByData)
 	row := stmt.QueryRow(permission.ResourceID, permission.TypeRWMD, permission.Status)
@@ -780,8 +781,9 @@ func (sqlite *SQLiteDB) constructPermNode(tx *sql.Tx, permission *entities.Permi
 	return permissionID, nil
 }
 
+// add roles to permission node
+//
 //todo:consider using in GrantPermission
-//add roles to permission node
 func (sqlite *SQLiteDB) grantPermNode(tx *sql.Tx, permissionID int64, role string) error {
 	stmt := tx.Stmt(sqlite.qm.InsRolePermIntersectData)
 	_, err := stmt.Exec(role, permissionID)
