@@ -2,6 +2,7 @@ package config
 
 import (
 	"errors"
+	"fsrv/src/database/entities"
 	"github.com/pelletier/go-toml"
 	"os"
 )
@@ -23,8 +24,9 @@ type Config struct {
 }
 
 type Server struct {
-	User string `toml:"user"`
-	Port int16  `toml:"port"`
+	User                    string             `toml:"user"`
+	Port                    int16              `toml:"port"`
+	DefaultRequestRateLimit entities.RateLimit `toml:"default_request_rate_limit"`
 }
 
 type FileManager struct {

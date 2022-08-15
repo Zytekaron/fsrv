@@ -1,9 +1,8 @@
-package database
+package dbutil
 
 import (
 	"errors"
 	"fsrv/src/database/entities"
-	"fsrv/src/types"
 )
 
 var (
@@ -33,16 +32,20 @@ type DBInterface interface {
 	GetKeys(pageSize int, offset int) ([]*entities.Key, error)
 	GetKeyIDs(pageSize int, offset int) ([]string, error)
 	GetKeyData(keyid string) (*entities.Key, error)
-	GetResources() []*entities.Resource
-	GetResourceIDs() []string
+	GetResources(pageSize int, offset int) ([]*entities.Resource, error)
+	GetResourceIDs(pageSize int, offset int) ([]string, error)
 	GetResourceData(resourceid string) (*entities.Resource, error)
-	GetRoles() []string //
+	GetRoles(pageSize int, offset int) ([]string, error)
 
 	GiveRole(keyid string, role ...string) error
 	TakeRole(keyid string, role ...string) error
-	GrantPermission(resource string, operationType types.OperationType, role ...string) []error
-	RevokePermission(resource string, operationType types.OperationType, role ...string) []error
-	SetRateLimit(limit *entities.RateLimit) error
+	GrantPermission(permission *entities.Permission, role ...string) error
+	RevokePermission(permission *entities.Permission, role ...string) error
+	SetRateLimit(key *entities.Key, limit *entities.RateLimit) error
+	GetRateLimitData(ratelimitid string) (*entities.RateLimit, error)
+	GetKeyRateLimitID(keyid string) (string, error)
+	UpdateRateLimit(rateLimitID string, rateLimit *entities.RateLimit) error
+	DeleteRateLimit(rateLimitID string) error
 
 	DeleteRole(name string) error
 	DeleteKey(id string) error
