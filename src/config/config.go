@@ -27,6 +27,7 @@ type Server struct {
 	User                    string             `toml:"user"`
 	Port                    int16              `toml:"port"`
 	DefaultRequestRateLimit entities.RateLimit `toml:"default_request_rate_limit"`
+	IPRequestRateLimit      entities.RateLimit `toml:"ip_request_rate_limit"`
 }
 
 type FileManager struct {
