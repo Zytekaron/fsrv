@@ -24,9 +24,11 @@ type Config struct {
 }
 
 type Server struct {
-	User                    string             `toml:"user"`
-	Port                    int16              `toml:"port"`
-	DefaultRequestRateLimit entities.RateLimit `toml:"default_request_rate_limit"`
+	User             string             `toml:"user"`
+	Port             int16              `toml:"port"`
+	KeyAuthDefaultRL entities.RateLimit `toml:"key_auth_default_rl"`
+	KeyBadAuthRL     entities.RateLimit `toml:"key_bad_rl"`
+	IPAnonymousRL    entities.RateLimit `toml:"ip_anonymous_rl"`
 }
 
 type FileManager struct {
