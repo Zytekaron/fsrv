@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"fsrv/src/database/dberr"
 	"fsrv/src/database/dbimpl"
 	"fsrv/src/database/entities"
 	"fsrv/src/types"
@@ -628,15 +629,21 @@ func (sqlite *SQLiteDB) GetRateLimitData(ratelimitid string) (*entities.RateLimi
 	return &rateLimit, nil
 }
 
-func (sqlite *SQLiteDB) GetKeyRateLimitID(keyid string) (string, error) {
-	var rtlimid sql.NullString
-	row := sqlite.qm.GetKeyRateLimitID.QueryRow(keyid)
-	err := row.Scan(&rtlimid)
+func (sqlite *SQLiteDB) GetKeyRateLimitID(keyID string) (string, error) {
+	var rateLimitID sql.NullString
+	row := sqlite.qm.GetKeyRateLimitID.QueryRow(keyID)
+	err := row.Scan(&rateLimitID)
 	if err != nil {
-		return "", err
+		row = sqlite.qm.GetKeyIDIfExists.QueryRow(keyID)
+		err = row.Scan(&keyID)
+		if err == sql.ErrNoRows {
+			return keyID, dberr.ErrKeyMissing
+		} else {
+			return keyID, err
+		}
 	}
-	if rtlimid.Valid {
-		return rtlimid.String, nil
+	if rateLimitID.Valid {
+		return rateLimitID.String, nil
 	} else {
 		return "", nil
 	}
