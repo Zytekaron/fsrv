@@ -1,9 +1,12 @@
 package cache
 
 import (
+	"errors"
 	"fsrv/src/database/dbutil"
 	"fsrv/src/database/entities"
+	"fsrv/src/types"
 	"github.com/zyedidia/generic/cache"
+	"log"
 )
 
 type tAndErr[T any] struct {
@@ -127,14 +130,64 @@ func (c *CacheDB) TakeRole(keyid string, role ...string) error {
 	panic("implement me")
 }
 
-func (c *CacheDB) GrantPermission(permission *entities.Permission, role ...string) error {
-	//TODO implement me
-	panic("implement me")
+func (c *CacheDB) GrantPermission(permission *entities.Permission, roles ...string) error {
+	err := c.db.GrantPermission(permission, roles...)
+	if err != nil {
+		return err
+	}
+	res, err := c.GetResourceData(permission.ResourceID)
+	if err != nil {
+		return err
+	}
+	for _, role := range roles {
+		switch permission.TypeRWMD {
+		case types.OperationRead:
+			res.ReadNodes[role] = permission.Status
+		case types.OperationWrite:
+			res.WriteNodes[role] = permission.Status
+		case types.OperationModify:
+			res.ModifyNodes[role] = permission.Status
+		case types.OperationDelete:
+			res.DeleteNodes[role] = permission.Status
+		default:
+			log.Println("Bad permission type received by GrantPermission (cache.go)")
+			return errors.New("bad permission type")
+		}
+	}
+
+	c.resourceCache.Put(permission.ResourceID, tAndErr[*entities.Resource]{res, nil})
+
+	return err
 }
 
-func (c *CacheDB) RevokePermission(permission *entities.Permission, role ...string) error {
-	//TODO implement me
-	panic("implement me")
+func (c *CacheDB) RevokePermission(permission *entities.Permission, roles ...string) error {
+	err := c.db.RevokePermission(permission, roles...)
+	if err != nil {
+		return err
+	}
+	res, err := c.GetResourceData(permission.ResourceID)
+	if err != nil {
+		return err
+	}
+	for _, role := range roles {
+		switch permission.TypeRWMD {
+		case types.OperationRead:
+			delete(res.ReadNodes, role)
+		case types.OperationWrite:
+			delete(res.WriteNodes, role)
+		case types.OperationModify:
+			delete(res.ModifyNodes, role)
+		case types.OperationDelete:
+			delete(res.DeleteNodes, role)
+		default:
+			log.Println("Bad permission type received by RevokePermission (cache.go)")
+			return errors.New("bad permission type")
+		}
+	}
+
+	c.resourceCache.Put(permission.ResourceID, tAndErr[*entities.Resource]{res, nil})
+
+	return err
 }
 
 func (c *CacheDB) SetRateLimit(key *entities.Key, limit *entities.RateLimit) error {
