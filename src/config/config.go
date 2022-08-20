@@ -27,7 +27,7 @@ type Server struct {
 	User             string             `toml:"user"`
 	Port             int16              `toml:"port"`
 	KeyAuthDefaultRL entities.RateLimit `toml:"key_auth_default_rl"`
-	KeyBadAuthRL     entities.RateLimit `toml:"key_bad_rl"`
+	KeyAuthAttemptRL entities.RateLimit `toml:"key_auth_attempt_rl"`
 	IPAnonymousRL    entities.RateLimit `toml:"ip_anonymous_rl"`
 }
 
