@@ -6,31 +6,31 @@ import (
 	"github.com/zyedidia/generic/cache"
 )
 
-type pair[T any, U any] struct {
+type tAndErr[T any] struct {
 	V   T
-	Err U
+	Err error
 }
 
 type CacheDB struct {
 	db               dbutil.DBInterface
-	resourceCache    cache.Cache[string, pair[*entities.Resource, error]]
-	keyCache         cache.Cache[string, pair[*entities.Key, error]]
-	roleCache        cache.Cache[string, pair[*entities.Role, error]]
-	rateLimitCache   cache.Cache[string, pair[*entities.RateLimit, error]]
-	rateLimitIDCache cache.Cache[string, pair[string, error]]
-	tokenCache       cache.Cache[string, pair[*entities.Token, error]] //todo: build out infrastructure for tokens
+	resourceCache    cache.Cache[string, tAndErr[*entities.Resource]]
+	keyCache         cache.Cache[string, tAndErr[*entities.Key]]
+	roleCache        cache.Cache[string, tAndErr[*entities.Role]]
+	rateLimitCache   cache.Cache[string, tAndErr[*entities.RateLimit]]
+	rateLimitIDCache cache.Cache[string, tAndErr[string]]
+	tokenCache       cache.Cache[string, tAndErr[*entities.Token]] //todo: build out infrastructure for tokens
 }
 
 type RetrieveFunc[T any] func() (T, error)
 
-func retrieveData[T any](cache cache.Cache[string, pair[T, error]], key string, retrieveFn RetrieveFunc[T]) (T, error) {
+func retrieveData[T any](cache cache.Cache[string, tAndErr[T]], key string, retrieveFn RetrieveFunc[T]) (T, error) {
 	data, ok := cache.Get(key)
 	if ok {
 		return data.V, data.Err
 	}
 
 	freshData, err := retrieveFn()
-	cache.Put(key, pair[T, error]{freshData, err})
+	cache.Put(key, tAndErr[T]{freshData, err})
 	return freshData, err
 }
 
@@ -40,12 +40,12 @@ type taggedType interface {
 	GetID() string
 }
 
-func createData[T taggedType](cache cache.Cache[string, pair[T, error]], data T, createFn createFunc) error {
+func createData[T taggedType](cache cache.Cache[string, tAndErr[T]], data T, createFn createFunc) error {
 	err := createFn()
 	if err != nil {
 		return err
 	}
-	cache.Put(data.GetID(), pair[T, error]{data, nil})
+	cache.Put(data.GetID(), tAndErr[T]{data, nil})
 	return nil
 }
 
@@ -58,7 +58,7 @@ func (c *CacheDB) CreateKey(key *entities.Key) error {
 	if err != nil {
 		return err
 	}
-	c.keyCache.Put(key.ID, pair[*entities.Key, error]{key, nil})
+	c.keyCache.Put(key.ID, tAndErr[*entities.Key]{key, nil})
 	return nil
 }
 
@@ -90,7 +90,7 @@ func (c *CacheDB) GetKeyData(keyID string) (*entities.Key, error) {
 		return key.V, key.Err
 	} else {
 		key, err := c.db.GetKeyData(keyID)
-		c.keyCache.Put(keyID, pair[*entities.Key, error]{key, err})
+		c.keyCache.Put(keyID, tAndErr[*entities.Key]{key, err})
 		return key, err
 	}
 }
