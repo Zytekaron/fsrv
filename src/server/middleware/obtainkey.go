@@ -15,7 +15,7 @@ func ObtainKey(db dbutil.DBInterface) gin.HandlerFunc {
 			return
 		}
 
-		ctx.Set("key", key)
+		ctx.Set("key", &key)
 		ctx.Next()
 	}
 }
