@@ -16,17 +16,17 @@ type tAndErr[T any] struct {
 
 type CacheDB struct {
 	db               dbutil.DBInterface
-	resourceCache    cache.Cache[string, tAndErr[*entities.Resource]]
-	keyCache         cache.Cache[string, tAndErr[*entities.Key]]
-	roleCache        cache.Cache[string, tAndErr[*entities.Role]]
-	rateLimitCache   cache.Cache[string, tAndErr[*entities.RateLimit]]
-	rateLimitIDCache cache.Cache[string, tAndErr[string]]
-	tokenCache       cache.Cache[string, tAndErr[*entities.Token]] //todo: build out infrastructure for tokens
+	resourceCache    *cache.Cache[string, tAndErr[*entities.Resource]]
+	keyCache         *cache.Cache[string, tAndErr[*entities.Key]]
+	roleCache        *cache.Cache[string, tAndErr[*entities.Role]]
+	rateLimitCache   *cache.Cache[string, tAndErr[*entities.RateLimit]]
+	rateLimitIDCache *cache.Cache[string, tAndErr[string]]
+	tokenCache       *cache.Cache[string, tAndErr[*entities.Token]] //todo: build out infrastructure for tokens
 }
 
 type RetrieveFunc[T any] func() (T, error)
 
-func retrieveData[T any](cache cache.Cache[string, tAndErr[T]], key string, retrieveFn RetrieveFunc[T]) (T, error) {
+func retrieveData[T any](cache *cache.Cache[string, tAndErr[T]], key string, retrieveFn RetrieveFunc[T]) (T, error) {
 	data, ok := cache.Get(key)
 	if ok {
 		return data.V, data.Err
@@ -43,7 +43,7 @@ type taggedType interface {
 	GetID() string
 }
 
-func createData[T taggedType](cache cache.Cache[string, tAndErr[T]], data T, createFn createFunc) error {
+func createData[T taggedType](cache *cache.Cache[string, tAndErr[T]], data T, createFn createFunc) error {
 	err := createFn()
 	if err != nil {
 		return err
@@ -55,6 +55,12 @@ func createData[T taggedType](cache cache.Cache[string, tAndErr[T]], data T, cre
 func NewCache(db dbutil.DBInterface) *CacheDB {
 	var cacheDB CacheDB
 	cacheDB.db = db
+	cacheDB.resourceCache = cache.New[string, tAndErr[*entities.Resource]](100)
+	cacheDB.keyCache = cache.New[string, tAndErr[*entities.Key]](100)
+	cacheDB.roleCache = cache.New[string, tAndErr[*entities.Role]](20)
+	cacheDB.rateLimitCache = cache.New[string, tAndErr[*entities.RateLimit]](500)
+	cacheDB.rateLimitIDCache = cache.New[string, tAndErr[string]](50)
+	cacheDB.tokenCache = cache.New[string, tAndErr[*entities.Token]](25)
 	return &cacheDB
 }
 
@@ -197,15 +203,15 @@ func (c *CacheDB) SetRateLimit(key *entities.Key, limit *entities.RateLimit) err
 	panic("implement me")
 }
 
-func (c *CacheDB) GetRateLimitData(ratelimitid string) (*entities.RateLimit, error) {
-	//TODO implement me
-	panic("implement me")
+func (c *CacheDB) GetRateLimitData(rateLimitID string) (*entities.RateLimit, error) {
+	return retrieveData[*entities.RateLimit](c.rateLimitCache, rateLimitID, func() (*entities.RateLimit, error) {
+		return c.db.GetRateLimitData(rateLimitID)
+	})
 }
 
 func (c *CacheDB) GetKeyRateLimitID(keyID string) (string, error) {
 	return retrieveData[string](c.rateLimitIDCache, keyID, func() (string, error) {
-		data, err := c.db.GetKeyRateLimitID(keyID)
-		return data, err
+		return c.db.GetKeyRateLimitID(keyID)
 	})
 }
 
