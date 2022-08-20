@@ -613,15 +613,7 @@ func (sqlite *SQLiteDB) GetRateLimitData(ratelimitid string) (*entities.RateLimi
 	var reset int64
 	err := row.Scan(&rateLimit.Limit, &reset)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return &entities.RateLimit{
-				ID:    "DEFAULT",
-				Limit: 0,
-				Reset: 0,
-			}, nil
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 	rateLimit.ID = ratelimitid
 	rateLimit.Reset = serde.Duration(reset * int64(time.Millisecond))
