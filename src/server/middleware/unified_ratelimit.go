@@ -35,7 +35,7 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 			//if attempting key authentication
 			if keyAttemptRLMgr.Draw(keyID, 1) {
 				//check if key and rate limit exists
-				rtlimID, err := db.GetKeyRateLimitID(keyID)
+				rtLimID, err := db.GetKeyRateLimitID(keyID)
 				if err != nil {
 					if err == dberr.ErrKeyMissing {
 						//if key is invalid
@@ -43,7 +43,7 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 						return
 					} else {
 						//if key is valid (but no viable rate limit exists)
-						keyAttemptRLMgr.Draw(keyID, -1) //undraw sucessful auth attempt
+						keyAttemptRLMgr.Draw(keyID, -1) //revert successful auth attempt
 						if defaultKeyRLMgr.Draw(keyID, 1) {
 							ctx.Next()
 							return
@@ -51,18 +51,18 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 					}
 				}
 
-				keyBm, ok := keyRLSuite.Get(rtlimID)
+				keyBm, ok := keyRLSuite.Get(rtLimID)
 				if !ok {
-					rateLimit, err := db.GetRateLimitData(rtlimID)
+					rateLimit, err := db.GetRateLimitData(rtLimID)
 					if err != nil {
 						if err == sql.ErrNoRows {
 							//if key is valid (but no viable rate limit exists)
-							keyAttemptRLMgr.Draw(keyID, -1) //undraw sucessful auth attempt
+							keyAttemptRLMgr.Draw(keyID, -1) //revert successful auth attempt
 							if defaultKeyRLMgr.Draw(keyID, 1) {
 								ctx.Next()
 								return
 							}
-							//if key is valid, no ratelimit exists, and is ratelimited
+							//if key is valid, no rate-limit exists, and is rate-limited
 							ctx.AbortWithStatusJSON(429, response.TooManyRequests)
 							return
 						}
@@ -73,11 +73,11 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 
 					//create and add bucket manager for rate limit level
 					keyBm = rl.NewSync(rateLimit.Limit, time.Duration(rateLimit.Reset))
-					keyRLSuite.Put(rtlimID, keyBm)
+					keyRLSuite.Put(rtLimID, keyBm)
 				}
 
 				//draw from key rate limit
-				keyAttemptRLMgr.Draw(keyID, -1) //undraw sucessful auth attempt
+				keyAttemptRLMgr.Draw(keyID, -1) //revert successful auth attempt
 				bucket := keyBm.Get(keyID)
 				if bucket.Draw(1) {
 					ctx.Next()
