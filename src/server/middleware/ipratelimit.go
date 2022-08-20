@@ -8,12 +8,11 @@ import (
 	"time"
 )
 
-const ipRateLimitPurgeInterval = 10 * time.Minute
+const ipRateLimitPurgeInterval_V1 = 10 * time.Minute
 
 // IPRateLimit applies ip based rate limiting
-func IPRateLimit(limit int, duration time.Duration) gin.HandlerFunc {
-	bm := rl.NewSync(limit, duration)
-	utils.Executor(ipRateLimitPurgeInterval, bm.Purge)
+func IPRateLimit(bm *rl.SyncBucketManager) gin.HandlerFunc {
+	utils.Executor(ipRateLimitPurgeInterval_V1, bm.Purge)
 
 	return func(ctx *gin.Context) {
 		sb := bm.Get(ctx.ClientIP())
