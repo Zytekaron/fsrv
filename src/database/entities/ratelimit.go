@@ -5,7 +5,7 @@ import (
 )
 
 type RateLimit struct {
-	ID    string         `json:"id"`
-	Limit int            `json:"limit"`
-	Reset serde.Duration `json:"reset"`
+	ID    string         `json:"id" toml:"id"`
+	Limit int            `json:"limit" toml:"limit"`
+	Reset serde.Duration `json:"reset" toml:"reset"`
 }
