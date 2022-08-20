@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"database/sql"
+	"fmt"
 	"fsrv/src/config"
 	"fsrv/src/database/dberr"
 	"fsrv/src/database/dbutil"
@@ -29,7 +30,7 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 	utils.Executor(validKeyRateLimitPurgeInterval, keyRLSuite.Purge)
 
 	return func(ctx *gin.Context) {
-		keyID, keyProvided := ctx.Params.Get("key")
+		keyID, keyProvided := ctx.GetQuery("key")
 		if keyProvided {
 			//if attempting key authentication
 			if keyAttemptRLMgr.Draw(keyID, 1) {
@@ -83,6 +84,7 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 			//if not attempting key authentication
 			sb := ipRLMgr.Get(ctx.ClientIP())
 			if sb.Draw(1) {
+				fmt.Printf("uses remaining: %d", sb.RemainingUses())
 				ctx.Next()
 			} else {
 				ctx.AbortWithStatusJSON(429, response.TooManyRequests)
