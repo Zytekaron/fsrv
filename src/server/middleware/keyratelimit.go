@@ -16,19 +16,26 @@ import (
 const keyRateLimitPurgeInterval = 10 * time.Minute
 
 // KeyRateLimit applies key based rate limiting
-func KeyRateLimit(db dbutil.DBInterface) gin.HandlerFunc {
+func KeyRateLimit(db dbutil.DBInterface, ipBM *rl.SyncBucketManager) gin.HandlerFunc {
 	suite := syncrl.New()
-	utils.Executor(rateLimitPurgeInterval, suite.Purge)
-	badKeyRateLimitHandler := IPRateLimit(10, time.Minute)
+	utils.Executor(keyRateLimitPurgeInterval, suite.Purge)
+	badKeyRLBM := rl.NewSync(5, keyRateLimitPurgeInterval)
+	badKeyRateLimitHandler := IPRateLimit(badKeyRLBM)
 
 	return func(ctx *gin.Context) {
 		keyID := ctx.GetString("KeyID")
 		level, err := db.GetKeyRateLimitID(keyID)
-		if err == dberr.ErrKeyMissing {
-			ctx.AbortWithStatusJSON(403, response.Forbidden)
-			badKeyRateLimitHandler(ctx)
-			return
+		if err != nil {
+			if err == dberr.ErrKeyMissing {
+				badKeyRateLimitHandler(ctx)
+				if ctx.IsAborted() {
+					ctx.AbortWithStatusJSON(403, response.Forbidden)
+				}
+				return
+			}
 		}
+		ipBM.Draw(ctx.ClientIP(), -1) //reverse ip rate limit decrement //todo: replace with something better, this fails if default untrusted limit is 0
+
 		if level == "" {
 			ctx.Next()
 			return
