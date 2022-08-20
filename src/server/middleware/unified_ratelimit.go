@@ -63,7 +63,7 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 								return
 							}
 							//if key is valid, no ratelimit exists, and is ratelimited
-							ctx.AbortWithStatusJSON(403, response.Forbidden)
+							ctx.AbortWithStatusJSON(429, response.TooManyRequests)
 							return
 						}
 						//if key is invalid
