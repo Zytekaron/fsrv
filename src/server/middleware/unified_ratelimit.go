@@ -37,11 +37,13 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 				//check if key and rate limit exists
 				rtlimID, err := db.GetKeyRateLimitID(keyID)
 				if err != nil {
-					if err == dberr.ErrKeyNameBad {
+					if err == dberr.ErrKeyMissing {
 						//if key is invalid
 						ctx.AbortWithStatusJSON(403, response.Forbidden)
+						return
 					} else {
 						//if key is valid (but no viable rate limit exists)
+						keyAttemptRLMgr.Draw(keyID, -1) //undraw sucessful auth attempt
 						if defaultKeyRLMgr.Draw(keyID, 1) {
 							ctx.Next()
 							return
@@ -55,13 +57,18 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 					if err != nil {
 						if err == sql.ErrNoRows {
 							//if key is valid (but no viable rate limit exists)
+							keyAttemptRLMgr.Draw(keyID, -1) //undraw sucessful auth attempt
 							if defaultKeyRLMgr.Draw(keyID, 1) {
 								ctx.Next()
 								return
 							}
+							//if key is valid, no ratelimit exists, and is ratelimited
+							ctx.AbortWithStatusJSON(403, response.Forbidden)
+							return
 						}
 						//if key is invalid
 						ctx.AbortWithStatusJSON(500, response.InternalServerError)
+						return
 					}
 
 					//create and add bucket manager for rate limit level
@@ -70,24 +77,30 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 				}
 
 				//draw from key rate limit
+				keyAttemptRLMgr.Draw(keyID, -1) //undraw sucessful auth attempt
 				bucket := keyBm.Get(keyID)
 				if bucket.Draw(1) {
 					ctx.Next()
+					return
 				} else {
 					ctx.AbortWithStatusJSON(429, response.TooManyRequests)
+					return
 				}
 
 			}
 			//if ip is rate limited from trying bad keys
 			ctx.AbortWithStatusJSON(429, response.TooManyRequests)
+			return
 		} else {
 			//if not attempting key authentication
 			sb := ipRLMgr.Get(ctx.ClientIP())
 			if sb.Draw(1) {
 				fmt.Printf("uses remaining: %d", sb.RemainingUses())
 				ctx.Next()
+				return
 			} else {
 				ctx.AbortWithStatusJSON(429, response.TooManyRequests)
+				return
 			}
 		}
 	}

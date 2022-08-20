@@ -631,13 +631,13 @@ func (sqlite *SQLiteDB) GetKeyRateLimitID(keyID string) (string, error) {
 		if err == sql.ErrNoRows {
 			return keyID, dberr.ErrKeyMissing
 		} else {
-			return keyID, err
+			return "", err
 		}
 	}
 	if rateLimitID.Valid {
 		return rateLimitID.String, nil
 	} else {
-		return "", nil
+		return "", err
 	}
 }
 
