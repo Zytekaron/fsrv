@@ -30,3 +30,7 @@ func (k *Key) IsExpired() bool {
 	}
 	return time.Since(expiry).Nanoseconds() > 0
 }
+
+func (k *Key) GetID() string {
+	return k.ID
+}

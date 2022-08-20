@@ -141,3 +141,7 @@ func (p *Resource) CheckModify(key *Key) AccessStatus {
 func (p *Resource) CheckDelete(key *Key) AccessStatus {
 	return p.CheckAccess(key, p.DeleteNodes, types.OperationDelete)
 }
+
+func (p *Resource) GetID() string {
+	return p.ID
+}

@@ -26,3 +26,7 @@ func (t *Token) IsExpired() bool {
 	}
 	return time.Since(expiry).Nanoseconds() > 0
 }
+
+func (t *Token) GetID() string {
+	return t.ID
+}

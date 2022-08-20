@@ -9,3 +9,7 @@ type RateLimit struct {
 	Limit int            `json:"limit" toml:"limit"`
 	Reset serde.Duration `json:"reset" toml:"reset"`
 }
+
+func (p *RateLimit) GetID() string {
+	return p.ID
+}
