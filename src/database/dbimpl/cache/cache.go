@@ -52,8 +52,10 @@ func createData[T taggedType](cache cache.Cache[string, tAndErr[T]], data T, cre
 	return nil
 }
 
-func (c *CacheDB) NewCache(db dbutil.DBInterface) {
-	c.db = db
+func NewCache(db dbutil.DBInterface) *CacheDB {
+	var cacheDB CacheDB
+	cacheDB.db = db
+	return &cacheDB
 }
 
 func (c *CacheDB) CreateKey(key *entities.Key) error {
