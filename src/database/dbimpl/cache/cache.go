@@ -141,14 +141,20 @@ func (c *CacheDB) GetRoles(pageSize int, offset int) ([]string, error) {
 	panic("implement me")
 }
 
-func (c *CacheDB) GiveRole(keyid string, role ...string) error {
-	//TODO implement me
-	panic("implement me")
+func (c *CacheDB) GiveRole(keyID string, role ...string) error {
+	return updateData[*entities.Key](c.keyCache, func() error {
+		return c.db.GiveRole(keyID, role...)
+	}, func() (*entities.Key, error) {
+		return c.db.GetKeyData(keyID)
+	})
 }
 
-func (c *CacheDB) TakeRole(keyid string, role ...string) error {
-	//TODO implement me
-	panic("implement me")
+func (c *CacheDB) TakeRole(keyID string, role ...string) error {
+	return updateData[*entities.Key](c.keyCache, func() error {
+		return c.db.TakeRole(keyID, role...)
+	}, func() (*entities.Key, error) {
+		return c.db.GetKeyData(keyID)
+	})
 }
 
 func (c *CacheDB) GrantPermission(permission *entities.Permission, roles ...string) error {
@@ -211,9 +217,16 @@ func (c *CacheDB) RevokePermission(permission *entities.Permission, roles ...str
 	return err
 }
 
-func (c *CacheDB) SetRateLimit(key *entities.Key, limit *entities.RateLimit) error {
-	//TODO implement me
-	panic("implement me")
+// SetRateLimit
+// NOTE: mutates underlying key to use given limitID
+func (c *CacheDB) SetRateLimit(key *entities.Key, limitID string) error {
+	return createData[*entities.Key](c.keyCache, key, func() error {
+		err := c.db.SetRateLimit(key, limitID) //attempt to set in database
+		if err != nil {
+			key.RateLimitID = limitID //set in key object so that cache change is written by createData (see impl)
+		}
+		return err
+	})
 }
 
 func (c *CacheDB) GetRateLimitData(rateLimitID string) (*entities.RateLimit, error) {
@@ -229,8 +242,9 @@ func (c *CacheDB) GetKeyRateLimitID(keyID string) (string, error) {
 }
 
 func (c *CacheDB) UpdateRateLimit(rateLimitID string, rateLimit *entities.RateLimit) error {
-	//TODO implement me
-	panic("implement me")
+	return createData[*entities.RateLimit](c.rateLimitCache, rateLimit, func() error {
+		return c.db.UpdateRateLimit(rateLimitID, rateLimit)
+	})
 }
 
 func (c *CacheDB) DeleteRateLimit(rateLimitID string) error {
