@@ -2,7 +2,6 @@ package middleware
 
 import (
 	"database/sql"
-	"fmt"
 	"fsrv/src/config"
 	"fsrv/src/database/dberr"
 	"fsrv/src/database/dbutil"
@@ -95,7 +94,6 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 			//if not attempting key authentication
 			sb := ipRLMgr.Get(ctx.ClientIP())
 			if sb.Draw(1) {
-				fmt.Printf("uses remaining: %d", sb.RemainingUses())
 				ctx.Next()
 				return
 			} else {
