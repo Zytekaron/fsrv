@@ -24,9 +24,14 @@ type CacheDB struct {
 	tokenCache       *cache.Cache[string, tAndErr[*entities.Token]] //todo: build out infrastructure for tokens
 }
 
-type RetrieveFunc[T any] func() (T, error)
+type retrieveFunc[T any] func() (T, error)
+type createFunc func() error
 
-func retrieveData[T any](cache *cache.Cache[string, tAndErr[T]], key string, retrieveFn RetrieveFunc[T]) (T, error) {
+type taggedType interface {
+	GetID() string
+}
+
+func retrieveData[T any](cache *cache.Cache[string, tAndErr[T]], key string, retrieveFn retrieveFunc[T]) (T, error) {
 	data, ok := cache.Get(key)
 	if ok {
 		return data.V, data.Err
@@ -37,15 +42,23 @@ func retrieveData[T any](cache *cache.Cache[string, tAndErr[T]], key string, ret
 	return freshData, err
 }
 
-type createFunc func() error
-
-type taggedType interface {
-	GetID() string
-}
-
 func createData[T taggedType](cache *cache.Cache[string, tAndErr[T]], data T, createFn createFunc) error {
 	err := createFn()
 	if err != nil {
+		return err
+	}
+	cache.Put(data.GetID(), tAndErr[T]{data, nil})
+	return nil
+}
+
+func updateData[T taggedType](cache *cache.Cache[string, tAndErr[T]], createFn createFunc, retrieveFn retrieveFunc[T]) error {
+	err := createFn()
+	if err != nil {
+		return err
+	}
+	data, err := retrieveFn()
+	if err != nil {
+		log.Fatalf("ERROR: CACHE INCONSISTENCY DETETECTED: %e", err)
 		return err
 	}
 	cache.Put(data.GetID(), tAndErr[T]{data, nil})
