@@ -24,11 +24,14 @@ type Config struct {
 }
 
 type Server struct {
-	User             string             `toml:"user"`
-	Port             int16              `toml:"port"`
-	KeyAuthDefaultRL entities.RateLimit `toml:"key_auth_default_rl"`
-	KeyAuthAttemptRL entities.RateLimit `toml:"key_auth_attempt_rl"`
-	IPAnonymousRL    entities.RateLimit `toml:"ip_anonymous_rl"`
+	User                string             `toml:"user"`
+	Port                int16              `toml:"port"`
+	KeyAuthDefaultRL    entities.RateLimit `toml:"key_auth_default_rl"`
+	KeyAuthAttemptRL    entities.RateLimit `toml:"key_auth_attempt_rl"`
+	IPAnonymousRL       entities.RateLimit `toml:"ip_anonymous_rl"`
+	KeyValidationSecret string             `toml:"key_validation_secret"`
+	KeyLength           int                `toml:"key_length"`
+	CheckLength         int                `toml:"key_checksum_portion_length"`
 }
 
 type FileManager struct {
