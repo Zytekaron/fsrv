@@ -12,19 +12,19 @@ type DBInterface interface {
 
 	GetKeys(pageSize int, offset int) ([]*entities.Key, error)
 	GetKeyIDs(pageSize int, offset int) ([]string, error)
-	GetKeyData(keyid string) (*entities.Key, error)
+	GetKeyData(keyID string) (*entities.Key, error)
 	GetResources(pageSize int, offset int) ([]*entities.Resource, error)
 	GetResourceIDs(pageSize int, offset int) ([]string, error)
-	GetResourceData(resourceid string) (*entities.Resource, error)
+	GetResourceData(resourceID string) (*entities.Resource, error)
 	GetRoles(pageSize int, offset int) ([]string, error)
 
-	GiveRole(keyid string, role ...string) error
-	TakeRole(keyid string, role ...string) error
+	GiveRole(keyID string, role ...string) error
+	TakeRole(keyID string, role ...string) error
 	GrantPermission(permission *entities.Permission, role ...string) error
 	RevokePermission(permission *entities.Permission, role ...string) error
-	SetRateLimit(key *entities.Key, limit *entities.RateLimit) error
-	GetRateLimitData(ratelimitid string) (*entities.RateLimit, error)
-	GetKeyRateLimitID(keyid string) (string, error)
+	SetRateLimit(key *entities.Key, limitID string) error
+	GetRateLimitData(rateLimitID string) (*entities.RateLimit, error)
+	GetKeyRateLimitID(keyID string) (string, error)
 	UpdateRateLimit(rateLimitID string, rateLimit *entities.RateLimit) error
 	DeleteRateLimit(rateLimitID string) error
 

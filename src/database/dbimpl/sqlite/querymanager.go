@@ -31,6 +31,7 @@ type QueryManager struct {
 	GetResourceRoles                             *sql.Stmt
 	GetKeyRateLimitID                            *sql.Stmt
 	UpdRateLimitData                             *sql.Stmt
+	UpdKeyRateLimitID                            *sql.Stmt
 	DelPermissionByID                            *sql.Stmt
 	DelRateLimitByID                             *sql.Stmt
 }
@@ -135,6 +136,10 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 		return qm, err
 	}
 	qm.UpdRateLimitData, err = db.Prepare("UPDATE Ratelimits SET ratelimitid = ?, requests=?, requests = ? WHERE ratelimitid = ?")
+	if err != nil {
+		return qm, err
+	}
+	qm.UpdKeyRateLimitID, err = db.Prepare("UPDATE Keys SET ratelimitid = ? WHERE keyid = ?")
 	if err != nil {
 		return qm, err
 	}

@@ -582,9 +582,19 @@ func (sqlite *SQLiteDB) RevokePermission(permission *entities.Permission, roles 
 	return nil
 }
 
-func (sqlite *SQLiteDB) SetRateLimit(key *entities.Key, limit *entities.RateLimit) error {
-	//TODO implement me
-	panic("implement me")
+func (sqlite *SQLiteDB) SetRateLimit(key *entities.Key, limitID string) error {
+	tx, err := sqlite.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt := tx.Stmt(sqlite.qm.UpdKeyRateLimitID)
+	_, err = stmt.Exec(key.ID, limitID)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+	commitOrPanic(tx)
+	return nil
 }
 
 /*               *\
