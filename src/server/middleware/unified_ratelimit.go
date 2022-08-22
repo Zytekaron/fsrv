@@ -1,7 +1,10 @@
 package middleware
 
 import (
+	"bytes"
+	"crypto/sha512"
 	"database/sql"
+	"encoding/base64"
 	"fsrv/src/config"
 	"fsrv/src/database/dberr"
 	"fsrv/src/database/dbutil"
@@ -10,6 +13,8 @@ import (
 	"fsrv/utils/syncrl"
 	"github.com/gin-gonic/gin"
 	"github.com/zytekaron/gotil/v2/rl"
+	"log"
+	"math"
 	"time"
 )
 
@@ -28,11 +33,18 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 	utils.Executor(defaultKeyRateLimitPurgeInterval, defaultKeyRLMgr.Purge)
 	utils.Executor(validKeyRateLimitPurgeInterval, keyRLSuite.Purge)
 
+	validateKey := KeySourceValidator(serverConfig.KeyRandomBytes, serverConfig.KeyCheckBytes, []byte(serverConfig.KeyValidationSecret))
+
 	return func(ctx *gin.Context) {
 		keyID, keyProvided := ctx.GetQuery("key")
 		if keyProvided {
 			//if attempting key authentication
 			if keyAttemptRLMgr.Draw(keyID, 1) {
+				//validate that key was issued by the server
+				if !validateKey(keyID) {
+					ctx.AbortWithStatusJSON(403, response.Forbidden)
+					return
+				}
 				//check if key and rate limit exists
 				rtLimID, err := db.GetKeyRateLimitID(keyID)
 				if err != nil {
@@ -101,5 +113,33 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 				return
 			}
 		}
+	}
+}
+
+func KeySourceValidator(randomBytes, checksumBytes int, salt []byte) func(string) bool {
+	if checksumBytes > 64 {
+		log.Fatalln("KeySourceValidator: checksumBytes cannot be greater than 64 because sha512 produces 64 byte output")
+	}
+	const b64repMlt float64 = 1 / (6.0 / 8) //base64 representation multiplier
+	size := int(math.Ceil(b64repMlt*float64(randomBytes)) + math.Ceil(b64repMlt*float64(checksumBytes)))
+
+	return func(keyStr string) bool {
+		if len(keyStr) != size {
+			return false
+		}
+
+		key, err := base64.URLEncoding.DecodeString(keyStr)
+		if err != nil {
+			return false
+		}
+
+		data := key[:randomBytes]
+		checksum := key[randomBytes:]
+
+		sha := sha512.New()
+		sha.Write(data)
+		sha.Write(salt)
+		shaSum := sha.Sum(nil)[:checksumBytes]
+		return bytes.Equal(checksum, shaSum)
 	}
 }
