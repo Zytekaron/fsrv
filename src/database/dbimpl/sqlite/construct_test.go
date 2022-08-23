@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"fsrv/src/database/dberr"
 	"fsrv/src/database/entities"
+	"fsrv/src/types"
 	"fsrv/utils/serde"
 	"os"
 	"strings"
@@ -141,56 +142,66 @@ func makeKeys(db *SQLiteDB) error {
 func makeResources(db *SQLiteDB) error {
 	res := []*entities.Resource{
 		{
-			ID:          "res_stoneWorld:WYRSRYssysysySrysrur6i98",
-			Flags:       0,
-			ReadNodes:   map[string]bool{"stone": true},
-			WriteNodes:  map[string]bool{"stone": true},
-			ModifyNodes: map[string]bool{"stone": true},
-			DeleteNodes: map[string]bool{"stone": true},
+			ID:    "res_stoneWorld:WYRSRYssysysySrysrur6i98",
+			Flags: 0,
+			OperationNodes: map[entities.ResourceOperationAccess]bool{
+				{"stone", types.OperationRead}:   true,
+				{"stone", types.OperationWrite}:  false,
+				{"stone", types.OperationModify}: false,
+				{"stone", types.OperationDelete}: true,
+			},
 		},
 
 		{
-			ID:          "res_publicReadAndModDiamondDelete:pu9ipuijpj0m0uji0ji0j0ji0",
-			Flags:       entities.FlagAuthedRead | entities.FlagAuthedModify,
-			ReadNodes:   nil,
-			WriteNodes:  nil,
-			ModifyNodes: nil,
-			DeleteNodes: map[string]bool{"diamond": true},
+			ID:    "res_publicReadAndModDiamondDelete:pu9ipuijpj0m0uji0ji0j0ji0",
+			Flags: 0,
+			OperationNodes: map[entities.ResourceOperationAccess]bool{
+				{"diamond", types.OperationDelete}: true,
+			},
 		},
 
 		{
-			ID:          "res_READ:DiamondAllowStoneDeny,WRITE:IronAllowGoldDeny:qwdxqwdxawqxqwdqwd",
-			Flags:       0,
-			ReadNodes:   map[string]bool{"diamond": true, "stone": false},
-			WriteNodes:  map[string]bool{"gold": false, "iron": true},
-			ModifyNodes: nil,
-			DeleteNodes: nil,
+			ID:    "res_READ:DiamondAllowStoneDeny,WRITE:IronAllowGoldDeny:qwdxqwdxawqxqwdqwd",
+			Flags: 0,
+			OperationNodes: map[entities.ResourceOperationAccess]bool{
+				{"diamond", types.OperationRead}: true,
+				{"stone", types.OperationRead}:   false,
+				{"gold", types.OperationWrite}:   false,
+				{"iron", types.OperationWrite}:   true,
+			},
 		},
 
 		{
-			ID:          "res_READ:ObsidianDenyStoneAllowStoneDeny,WRITE:Gold",
-			Flags:       0,
-			ReadNodes:   map[string]bool{"obsidian": false, "stone": true, "gold": false},
-			WriteNodes:  map[string]bool{"gold": true},
-			ModifyNodes: nil,
-			DeleteNodes: nil,
+			ID:    "res_READ:ObsidianDenyStoneAllowStoneDeny,WRITE:Gold",
+			Flags: 0,
+			OperationNodes: map[entities.ResourceOperationAccess]bool{
+				{"obsidian", types.OperationRead}: false,
+				{"stone", types.OperationRead}:    true,
+				{"gold", types.OperationRead}:     false,
+				{"gold", types.OperationWrite}:    true,
+			},
 		},
 
 		{
-			ID:          "res_READ:fake_roles,WRITE:fakeAndReal",
-			Flags:       0,
-			ReadNodes:   map[string]bool{"glass": false, "coal": true, "steel": false},
-			WriteNodes:  map[string]bool{"mithril": true, "diamond": true},
-			ModifyNodes: nil,
-			DeleteNodes: nil,
+			ID:    "res_READ:fake_roles,WRITE:fakeAndReal",
+			Flags: 0,
+			OperationNodes: map[entities.ResourceOperationAccess]bool{
+				{"glass", types.OperationRead}:    false,
+				{"coal", types.OperationRead}:     true,
+				{"steel", types.OperationRead}:    false,
+				{"mithril", types.OperationWrite}: true,
+				{"diamond", types.OperationWrite}: true,
+			},
 		},
 		{
-			ID:          "res_C/R/U/D:[key: key_ancientEvil]",
-			Flags:       0,
-			ReadNodes:   map[string]bool{"key_ancientEvil": true},
-			WriteNodes:  map[string]bool{"key_ancientEvil": true},
-			ModifyNodes: map[string]bool{"key_ancientEvil": true},
-			DeleteNodes: map[string]bool{"key_ancientEvil": true},
+			ID:    "res_C/R/U/D:[key: key_ancientEvil]",
+			Flags: 0,
+			OperationNodes: map[entities.ResourceOperationAccess]bool{
+				{"key_ancientEvil", types.OperationRead}:   false,
+				{"key_ancientEvil", types.OperationWrite}:  true,
+				{"key_ancientEvil", types.OperationModify}: false,
+				{"key_ancientEvil", types.OperationDelete}: true,
+			},
 		},
 	}
 
