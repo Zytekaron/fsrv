@@ -7,9 +7,7 @@ import (
 	"fsrv/src/database/dberr"
 	"fsrv/src/database/dbimpl"
 	"fsrv/src/database/entities"
-	"fsrv/src/types"
 	"fsrv/utils/serde"
-	"log"
 	"time"
 )
 import _ "github.com/mattn/go-sqlite3"
@@ -213,22 +211,7 @@ func (sqlite *SQLiteDB) CreateResource(resource *entities.Resource) error {
 	}
 
 	//insert permissions
-	err = sqlite.createResourcePermission(tx, resource, resource.ReadNodes, types.OperationRead)
-	if err != nil {
-		rollbackOrPanic(tx)
-		return err
-	}
-	err = sqlite.createResourcePermission(tx, resource, resource.WriteNodes, types.OperationWrite)
-	if err != nil {
-		rollbackOrPanic(tx)
-		return err
-	}
-	err = sqlite.createResourcePermission(tx, resource, resource.ModifyNodes, types.OperationModify)
-	if err != nil {
-		rollbackOrPanic(tx)
-		return err
-	}
-	err = sqlite.createResourcePermission(tx, resource, resource.DeleteNodes, types.OperationDelete)
+	err = sqlite.createResourcePermissions(tx, resource)
 	if err != nil {
 		rollbackOrPanic(tx)
 		return err
@@ -236,7 +219,6 @@ func (sqlite *SQLiteDB) CreateResource(resource *entities.Resource) error {
 
 	//commit transaction results
 	commitOrPanic(tx)
-
 	return nil
 }
 
@@ -421,19 +403,11 @@ func (sqlite *SQLiteDB) GetResourceData(resourceid string) (*entities.Resource, 
 
 	//get permissions
 	for iter() == nil {
-		switch roleperm.Perm.TypeRWMD {
-		case types.OperationRead:
-			res.ReadNodes[roleperm.Role.ID] = roleperm.Perm.Status
-		case types.OperationWrite:
-			res.WriteNodes[roleperm.Role.ID] = roleperm.Perm.Status
-		case types.OperationModify:
-			res.ModifyNodes[roleperm.Role.ID] = roleperm.Perm.Status
-		case types.OperationDelete:
-			res.DeleteNodes[roleperm.Role.ID] = roleperm.Perm.Status
-		default:
-			//todo: make into error
-			log.Println("[error] bad db state")
+		key := entities.ResourceOperationAccess{
+			ID:   roleperm.Role.ID,
+			Type: roleperm.Perm.TypeRWMD,
 		}
+		res.OperationNodes[key] = roleperm.Perm.Status
 	}
 
 	_ = tx.Commit()
@@ -708,27 +682,35 @@ func (sqlite *SQLiteDB) getResourceRolePermIter(tx *sql.Tx, resourceID string) (
 	return roleIterNext, &rolePerm, nil
 }
 
-func (sqlite *SQLiteDB) createResourcePermission(tx *sql.Tx, resource *entities.Resource, permMap map[string]bool, operationType types.OperationType) error {
+func (sqlite *SQLiteDB) createResourcePermissions(tx *sql.Tx, resource *entities.Resource) error {
 	var err error
 	var allowID int64 = -1
 	var denyID int64 = -1
 
-	for role, status := range permMap {
+	for key, status := range resource.OperationNodes {
 		if status && allowID == -1 {
-			allowID, err = sqlite.constructPermNode(tx, &entities.Permission{ResourceID: resource.ID, TypeRWMD: operationType, Status: status})
+			allowID, err = sqlite.constructPermNode(tx, &entities.Permission{
+				ResourceID: resource.ID,
+				TypeRWMD:   key.Type,
+				Status:     status,
+			})
 			if err != nil {
 				return err
 			}
-			err = sqlite.grantPermNode(tx, allowID, role)
+			err = sqlite.grantPermNode(tx, allowID, key.ID)
 			if err != nil {
 				return err
 			}
 		} else if denyID == -1 {
-			denyID, err = sqlite.constructPermNode(tx, &entities.Permission{ResourceID: resource.ID, TypeRWMD: operationType, Status: status})
+			denyID, err = sqlite.constructPermNode(tx, &entities.Permission{
+				ResourceID: resource.ID,
+				TypeRWMD:   key.Type,
+				Status:     status,
+			})
 			if err != nil {
 				return err
 			}
-			err = sqlite.grantPermNode(tx, denyID, role)
+			err = sqlite.grantPermNode(tx, denyID, key.ID)
 			if err != nil {
 				return err
 			}
