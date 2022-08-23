@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"fsrv/src/database/dberr"
 	"fsrv/src/database/dbimpl"
 	"fsrv/src/database/entities"
 	"fsrv/src/types"
@@ -581,9 +582,19 @@ func (sqlite *SQLiteDB) RevokePermission(permission *entities.Permission, roles 
 	return nil
 }
 
-func (sqlite *SQLiteDB) SetRateLimit(key *entities.Key, limit *entities.RateLimit) error {
-	//TODO implement me
-	panic("implement me")
+func (sqlite *SQLiteDB) SetRateLimit(key *entities.Key, limitID string) error {
+	tx, err := sqlite.db.Begin()
+	if err != nil {
+		return err
+	}
+	stmt := tx.Stmt(sqlite.qm.UpdKeyRateLimitID)
+	_, err = stmt.Exec(key.ID, limitID)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+	commitOrPanic(tx)
+	return nil
 }
 
 /*               *\
@@ -612,15 +623,7 @@ func (sqlite *SQLiteDB) GetRateLimitData(ratelimitid string) (*entities.RateLimi
 	var reset int64
 	err := row.Scan(&rateLimit.Limit, &reset)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return &entities.RateLimit{
-				ID:    "DEFAULT",
-				Limit: 0,
-				Reset: 0,
-			}, nil
-		} else {
-			return nil, err
-		}
+		return nil, err
 	}
 	rateLimit.ID = ratelimitid
 	rateLimit.Reset = serde.Duration(reset * int64(time.Millisecond))
@@ -628,17 +631,23 @@ func (sqlite *SQLiteDB) GetRateLimitData(ratelimitid string) (*entities.RateLimi
 	return &rateLimit, nil
 }
 
-func (sqlite *SQLiteDB) GetKeyRateLimitID(keyid string) (string, error) {
-	var rtlimid sql.NullString
-	row := sqlite.qm.GetKeyRateLimitID.QueryRow(keyid)
-	err := row.Scan(&rtlimid)
+func (sqlite *SQLiteDB) GetKeyRateLimitID(keyID string) (string, error) {
+	var rateLimitID sql.NullString
+	row := sqlite.qm.GetKeyRateLimitID.QueryRow(keyID)
+	err := row.Scan(&rateLimitID)
 	if err != nil {
-		return "", err
+		row = sqlite.qm.GetKeyIDIfExists.QueryRow(keyID)
+		err = row.Scan(&keyID)
+		if err == sql.ErrNoRows {
+			return keyID, dberr.ErrKeyMissing
+		} else {
+			return "", err
+		}
 	}
-	if rtlimid.Valid {
-		return rtlimid.String, nil
+	if rateLimitID.Valid {
+		return rateLimitID.String, nil
 	} else {
-		return "", nil
+		return "", err
 	}
 }
 

@@ -2,7 +2,8 @@ package main
 
 import (
 	"fsrv/src/config"
-	"fsrv/src/database"
+	"fsrv/src/database/dbimpl/cache"
+	"fsrv/src/database/dbutil"
 	"fsrv/src/server"
 	"log"
 	"strconv"
@@ -20,11 +21,13 @@ func init() {
 }
 
 func main() {
-	db, err := database.Create(cfg.Database)
+	db, err := dbutil.Create(cfg.Database)
 	if err != nil {
 		log.Fatal(err)
 	}
-	serv := server.New(db)
+	cachedDB := cache.NewCache(db)
+
+	serv := server.New(cachedDB, cfg)
 
 	addr := ":" + strconv.Itoa(int(cfg.Server.Port))
 	err = serv.Start(addr)

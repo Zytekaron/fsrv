@@ -8,7 +8,11 @@ import (
 
 func Create(cfg *config.Database) (DBInterface, error) {
 	if cfg.Type == config.DatabaseSQLite {
-		return sqlite.Create(cfg.Path)
+		db, err := sqlite.Open(cfg.Path)
+		if err != nil {
+			return sqlite.Create(cfg.Path)
+		}
+		return db, err
 	}
 	return nil, errors.New("invalid database type")
 }

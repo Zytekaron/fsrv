@@ -17,3 +17,7 @@ type RolePerm struct {
 	Role Role
 	Perm Permission
 }
+
+func (r *Role) GetID() string {
+	return r.ID
+}

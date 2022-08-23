@@ -12,6 +12,7 @@ type QueryManager struct {
 	GetRateLimitIDIfExists                       *sql.Stmt
 	InsRateLimitData                             *sql.Stmt
 	GetRoleIDIfExists                            *sql.Stmt
+	GetKeyIDIfExists                             *sql.Stmt
 	InsKeyRoleIntersectData                      *sql.Stmt
 	InsRoleData                                  *sql.Stmt
 	InsResourceData                              *sql.Stmt
@@ -30,6 +31,7 @@ type QueryManager struct {
 	GetResourceRoles                             *sql.Stmt
 	GetKeyRateLimitID                            *sql.Stmt
 	UpdRateLimitData                             *sql.Stmt
+	UpdKeyRateLimitID                            *sql.Stmt
 	DelPermissionByID                            *sql.Stmt
 	DelRateLimitByID                             *sql.Stmt
 }
@@ -74,6 +76,10 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 		return qm, err
 	}
 	qm.GetRoleIDIfExists, err = db.Prepare("SELECT roleid FROM Roles WHERE roleid = ?") //CreateKey
+	if err != nil {
+		return qm, err
+	}
+	qm.GetKeyIDIfExists, err = db.Prepare("SELECT keyid FROM Keys WHERE keyid = ?")
 	if err != nil {
 		return qm, err
 	}
@@ -133,6 +139,10 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
+	qm.UpdKeyRateLimitID, err = db.Prepare("UPDATE Keys SET ratelimitid = ? WHERE keyid = ?")
+	if err != nil {
+		return qm, err
+	}
 
 	//Delete operations
 	qm.DelPermissionByID, err = db.Prepare("DELETE FROM Permissions WHERE permissionid = ?") //RevokePermission
@@ -149,7 +159,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	return qm, nil
 }
 
-//todo: test
+// todo: test
 func (qm *QueryManager) freePreparedQueries() error {
 	v := reflect.ValueOf(qm).Elem()
 	fcount := v.NumField()
@@ -163,7 +173,7 @@ func (qm *QueryManager) freePreparedQueries() error {
 	return nil
 }
 
-//todo: test
+// todo: test
 func (qm *QueryManager) prepVarLenQuery(db *sql.DB, baseQuery string, repeatedSection string, conclusion string, repeats int) ([]*sql.Stmt, error) {
 	if repeats < 1 {
 		log.Panicf("prepareVariableLengthQuery: bad argument value for repeats (%d is < 1)", repeats)
