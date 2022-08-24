@@ -36,7 +36,7 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 	validateKey := KeySourceValidator(serverConfig.KeyRandomBytes, serverConfig.KeyCheckBytes, []byte(serverConfig.KeyValidationSecret))
 
 	return func(ctx *gin.Context) {
-		keyID, keyProvided := ctx.GetQuery("key")
+		keyID, keyProvided := extractKey(ctx)
 		if keyProvided {
 			//if attempting key authentication
 			if keyAttemptRLMgr.Draw(keyID, 1) {
