@@ -86,3 +86,7 @@ func (r *Resource) checkKeyAccess(key *Key, op types.OperationType) AccessStatus
 	// no access specifiers on this level
 	return AccessNeutral
 }
+
+func (r *Resource) GetID() string {
+	return r.ID
+}

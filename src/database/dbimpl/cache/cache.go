@@ -1,10 +1,8 @@
 package cache
 
 import (
-	"errors"
 	"fsrv/src/database/dbutil"
 	"fsrv/src/database/entities"
-	"fsrv/src/types"
 	"github.com/zyedidia/generic/cache"
 	"log"
 )
@@ -166,20 +164,13 @@ func (c *CacheDB) GrantPermission(permission *entities.Permission, roles ...stri
 	if err != nil {
 		return err
 	}
+
 	for _, role := range roles {
-		switch permission.TypeRWMD {
-		case types.OperationRead:
-			res.ReadNodes[role] = permission.Status
-		case types.OperationWrite:
-			res.WriteNodes[role] = permission.Status
-		case types.OperationModify:
-			res.ModifyNodes[role] = permission.Status
-		case types.OperationDelete:
-			res.DeleteNodes[role] = permission.Status
-		default:
-			log.Println("Bad permission type received by GrantPermission (cache.go)")
-			return errors.New("bad permission type")
+		resOpAccess := entities.ResourceOperationAccess{
+			ID:   role,
+			Type: permission.TypeRWMD,
 		}
+		res.OperationNodes[resOpAccess] = permission.Status
 	}
 
 	c.resourceCache.Put(permission.ResourceID, tAndErr[*entities.Resource]{res, nil})
@@ -197,19 +188,11 @@ func (c *CacheDB) RevokePermission(permission *entities.Permission, roles ...str
 		return err
 	}
 	for _, role := range roles {
-		switch permission.TypeRWMD {
-		case types.OperationRead:
-			delete(res.ReadNodes, role)
-		case types.OperationWrite:
-			delete(res.WriteNodes, role)
-		case types.OperationModify:
-			delete(res.ModifyNodes, role)
-		case types.OperationDelete:
-			delete(res.DeleteNodes, role)
-		default:
-			log.Println("Bad permission type received by RevokePermission (cache.go)")
-			return errors.New("bad permission type")
+		resOpAccess := entities.ResourceOperationAccess{
+			ID:   role,
+			Type: permission.TypeRWMD,
 		}
+		delete(res.OperationNodes, resOpAccess)
 	}
 
 	c.resourceCache.Put(permission.ResourceID, tAndErr[*entities.Resource]{res, nil})
