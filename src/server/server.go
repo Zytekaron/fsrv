@@ -21,6 +21,7 @@ func New(DBInterface dbutil.DBInterface, config *config.Config) *Server {
 func (s *Server) Start(addr string) error {
 	r := gin.Default()
 	r.Use(middleware.UnifiedRateLimit(s.Dbi, s.Cfg.Server))
+	r.Use(middleware.Auth(s.Dbi, s.Cfg.FileManager))
 
 	handlers.New().Register(r)
 	return http.ListenAndServe(addr, r)
