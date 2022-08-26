@@ -23,12 +23,11 @@ func extractResPath(ctx *gin.Context) string {
 	return ctx.Request.URL.Path
 }
 
-func extractResourceID(ctx *gin.Context, dir *http.Dir) (string, bool) {
-	path := extractResPath(ctx)
-
+func extractResourceID(dir *http.Dir, path string) (string, bool) {
 	for {
 		//check if valid
-		_, err := dir.Open(path)
+		_, err := dir.Open(string(*dir) + path)
+
 		if err != nil {
 			return "", false
 		}
