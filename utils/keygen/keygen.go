@@ -1,9 +1,10 @@
 package keygen
 
 import (
+	"crypto/rand"
 	"crypto/sha512"
 	"encoding/base64"
-	"github.com/zytekaron/gotil/v2/random"
+	"log"
 	"math"
 )
 
@@ -14,26 +15,24 @@ func GetKeySize(randomBytes, checksumBytes int) (randSize, checkSize int) {
 	return
 }
 
-func getSum(returnedBytes int, data ...[]byte) []byte {
+func getSum(data ...[]byte) []byte {
 	sha := sha512.New()
 	for _, d := range data {
 		sha.Write(d)
 	}
-	return sha.Sum(nil)[:returnedBytes]
+	return sha.Sum(nil)
 }
 
-// todo: fix
-func MintKey(b64KeyString, salt string, checksumBytes int) (string, error) {
-	key, err := base64.URLEncoding.DecodeString(b64KeyString)
+func MintKey(key, salt []byte, checksumBytes int) string {
+	sum := getSum(key, salt)[:checksumBytes]
+	return base64.URLEncoding.EncodeToString(sum)
+}
+
+func GetRand(size int) []byte {
+	b := make([]byte, size)
+	_, err := rand.Read(b)
 	if err != nil {
-		return "", err
+		log.Fatal(err)
 	}
-
-	data := key[:len(b64KeyString)]
-	sum := getSum(checksumBytes, data, []byte(salt))
-	return base64.URLEncoding.EncodeToString(sum), nil
-}
-
-func GetRand(size int) string {
-	return random.MustSecureString(size, "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz01234567890+/")
+	return b
 }
