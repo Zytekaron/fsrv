@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"fsrv/src/config"
 	"fsrv/src/database/dbutil"
 	"fsrv/src/database/entities"
@@ -11,20 +12,21 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 // Auth verifies that the issuer a request has authority to take a given action on the resource in question
 func Auth(db dbutil.DBInterface, cfg *config.FileManager) gin.HandlerFunc {
 	root := cfg.Path
 	return func(ctx *gin.Context) {
+		c, cancel := context.WithTimeout(ctx, 10*time.Second)
+		defer cancel()
 		authHandler(ctx, db, root, extractResPath(ctx))
+		c.Done()
 	}
 }
 
 func authHandler(ctx *gin.Context, db dbutil.DBInterface, root, path string) {
-	//c, cancel := context.WithTimeout(ctx, 10*time.Second)
-	//defer cancel()
-
 	dir := http.Dir(root)
 
 	//get resource data
@@ -76,7 +78,6 @@ func authHandler(ctx *gin.Context, db dbutil.DBInterface, root, path string) {
 	status := res.CheckAccess(key, getAccessType(ctx))
 	switch status {
 	case entities.AccessAllowed:
-		//c.Done()
 		ctx.Set("Resource", res)
 		ctx.Set("Key", key)
 		ctx.Next()
