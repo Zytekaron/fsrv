@@ -41,17 +41,12 @@ func run() {
 	}
 }
 
-func makeKeys(t *testing.T, numKeys, keySize, checksumBytes int, salt string) (keys []string) {
+func makeKeys(t *testing.T, numKeys, keySize, checksumBytes int, salt []byte) (keys []string) {
 	for i := 0; i < numKeys; i++ {
-		kStr := keygen.GetRand(keySize) + "=="
-		t.Log(kStr)
-		key, err := keygen.MintKey(kStr, salt, checksumBytes)
-		if err != nil {
-			t.Log(err)
-			t.Fail()
-		} else {
-			keys = append(keys, key)
-		}
+		kStr := keygen.GetRand(keySize)
+		key := keygen.MintKey(kStr, salt, checksumBytes)
+		t.Log(key)
+		keys = append(keys, key)
 	}
 	return
 }
@@ -62,8 +57,8 @@ func TestServer(t *testing.T) {
 	go run() //run server
 	time.Sleep(500 * time.Millisecond)
 	t.Log(">GENERATING KEYS")
-	randSize, checkSize := keygen.GetKeySize(cfg.Server.KeyRandomBytes, cfg.Server.KeyCheckBytes)
-	keys := makeKeys(t, 20, randSize, checkSize, cfg.Server.KeyValidationSecret)
+	randSize, checkSize := cfg.Server.KeyRandomBytes, cfg.Server.KeyCheckBytes
+	keys := makeKeys(t, 20, randSize, checkSize, []byte(cfg.Server.KeyValidationSecret))
 
 	t.Log(">MAKING REQUESTS")
 	for _, key := range keys {
