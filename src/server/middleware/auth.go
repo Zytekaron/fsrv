@@ -30,7 +30,7 @@ func authHandler(ctx *gin.Context, db dbutil.DBInterface, root, path string) {
 	dir := http.Dir(root)
 
 	//get resource data
-	resID, ok := extractResourceID(&dir, path)
+	resID, path, ok := extractResourceID(&dir, path)
 	if !ok {
 		ctx.AbortWithStatusJSON(403, response.Unauthorized)
 		return

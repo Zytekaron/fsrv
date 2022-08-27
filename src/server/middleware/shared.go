@@ -23,19 +23,19 @@ func extractResPath(ctx *gin.Context) string {
 	return ctx.Request.URL.Path
 }
 
-func extractResourceID(dir *http.Dir, path string) (string, bool) {
+func extractResourceID(dir *http.Dir, path string) (string, string, bool) {
 	for {
 		//check if valid
 		_, err := dir.Open(string(*dir) + path)
 
 		if err != nil {
-			return "", false
+			return "", "", false
 		}
 
 		resourceID, err := xattr.Get(path, xAttributeResource)
 		//if resource id attribute is found
 		if err == nil {
-			return string(resourceID), true
+			return string(resourceID), path, true
 		}
 
 		path = filepath.Dir(strings.TrimSuffix(path, "/")) //get parent directory
