@@ -25,7 +25,7 @@ func getSum(data ...[]byte) []byte {
 
 func MintKey(key, salt []byte, checksumBytes int) string {
 	sum := getSum(key, salt)[:checksumBytes]
-	return base64.URLEncoding.EncodeToString(sum)
+	return base64.RawURLEncoding.EncodeToString(append(key, sum...))
 }
 
 func GetRand(size int) []byte {

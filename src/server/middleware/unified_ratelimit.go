@@ -128,7 +128,7 @@ func KeySourceValidator(randomBytes, checksumBytes int, salt []byte) func(string
 			return false
 		}
 
-		key, err := base64.URLEncoding.DecodeString(keyStr)
+		key, err := base64.RawURLEncoding.DecodeString(keyStr)
 		if err != nil {
 			return false
 		}
