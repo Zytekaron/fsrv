@@ -8,9 +8,9 @@ import (
 	"fsrv/src/database/dbutil"
 	"fsrv/utils/keygen"
 	"log"
-	"math/rand"
 	"net/http"
 	"strconv"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -56,79 +56,109 @@ func TestServer(t *testing.T) {
 	setup()
 	t.Log(">STARTING SERVER")
 	go run() //run server
-	time.Sleep(10 * time.Millisecond)
-	t.Log(">GENERATING KEYS")
+
+	i := 1
+	go func() {
+		time.Sleep(1 * time.Second)
+		t.Log("second: ", i)
+		i++
+	}()
+	time.Sleep(15 * time.Second)
+}
+
+func TestRequestServer(t *testing.T) {
+	setup()
+
 	randSize, checkSize := cfg.Server.KeyRandomBytes, cfg.Server.KeyCheckBytes
-	keys := makeKeys(t, 200000, randSize, checkSize, []byte(cfg.Server.KeyValidationSecret))
+	keys := makeKeys(t, 20000, randSize, checkSize, []byte(cfg.Server.KeyValidationSecret))
 
 	t.Log(">MAKING REQUESTS")
-	go func() {
-		for _, key := range keys {
-			url := fmt.Sprintf("http://127.0.0.1:1337/?key=%s", key)
-			req, _ := http.NewRequest("GET", url, nil)
-			res, _ := http.DefaultClient.Do(req)
-			//body, _ := io.ReadAll(res.Body)
-			//fmt.Println(res)
-			//fmt.Println(string(body))
-			err := res.Body.Close()
-			if err != nil {
-				t.Log(err)
-				t.Fail()
-			}
-		}
-	}()
 
-	go func() {
-		for _, key := range keys {
-			for i := 0; i < rand.Intn(8); i++ {
-				url := fmt.Sprintf("http://127.0.0.1:1337/?key=%s", key)
-				req, _ := http.NewRequest("GET", url, nil)
-				res, _ := http.DefaultClient.Do(req)
-				//body, _ := io.ReadAll(res.Body)
-				//fmt.Println(res)
-				//fmt.Println(string(body))
-				err := res.Body.Close()
-				if err != nil {
-					t.Log(err)
-					t.Fail()
-				}
-			}
-		}
-	}()
+	totalRequests := int64(0)
 
 	go func() {
 		size, _ := keygen.GetKeySize(randSize, checkSize)
-		for i := 0; i < 1000; i++ {
+		for {
 			d := keygen.GetRand(size)
 			key := base64.RawURLEncoding.EncodeToString(d)
 			url := fmt.Sprintf("http://127.0.0.1:1337/bad/?key=%s", key)
 			req, _ := http.NewRequest("GET", url, nil)
 			res, _ := http.DefaultClient.Do(req)
-			//body, _ := io.ReadAll(res.Body)
-			//fmt.Println(res)
-			//fmt.Println(string(body))
-			err := res.Body.Close()
-			if err != nil {
-				t.Log(err)
-				t.Fail()
+			//if err != nil {
+			//	t.Log(err)
+			//	t.Fail()
+			//}
+			if res != nil {
+				//body, _ := io.ReadAll(res.Body)
+				//fmt.Println(res)
+				//fmt.Println(string(body))
+				//err = res.Body.Close()
+				//if err != nil {
+				//	t.Log(err)
+				//	t.Fail()
+				//}
 			}
+
+			time.Sleep(20 * time.Microsecond)
+			atomic.AddInt64(&totalRequests, 1)
 		}
 	}()
 
-	func() {
-		for i := 0; i < 2000; i++ {
+	go func() {
+		client := http.Client{}
+		for i := 0; i < 20000000000; i++ {
 			url := fmt.Sprintf("http://127.0.0.1:1337/cool/path/%d", i)
-			req, _ := http.NewRequest("GET", url, nil)
-			res, _ := http.DefaultClient.Do(req)
+			_, _ = client.Get(url)
+			//if err != nil {
+			//	t.Log(err)
+			//	t.Fail()
+			//}
+			//if res != nil {
 			//body, _ := io.ReadAll(res.Body)
 			//fmt.Println(res)
 			//fmt.Println(string(body))
-			err := res.Body.Close()
-			if err != nil {
-				t.Log(err)
-				t.Fail()
-			}
+			//err = res.Body.Close()
+			//if err != nil {
+			//	t.Log(err)
+			//	t.Fail()
+			//}
+			//}
+			time.Sleep(20 * time.Microsecond)
+			atomic.AddInt64(&totalRequests, 1)
 		}
 	}()
-	time.Sleep(5 * time.Second)
+
+	go func() {
+		client := http.Client{}
+		for _, key := range keys {
+			key := key
+			go func() {
+				for i := 0; i < 10; i++ {
+					url := fmt.Sprintf("http://127.0.0.1:1337/?key=%s", key)
+					_, _ = client.Get(url)
+					//if err != nil {
+					//	t.Log(err)
+					//	t.Fail()
+					//}
+					//if res != nil {
+					//body, _ := io.ReadAll(res.Body)
+					//fmt.Println(res)
+					//fmt.Println(string(body))
+					//err = res.Body.Close()
+					//if err != nil {
+					//	t.Log(err)
+					//	t.Fail()
+					//}
+					//}
+					atomic.AddInt64(&totalRequests, 1)
+					time.Sleep(20 * time.Microsecond)
+				}
+			}()
+			time.Sleep(100 * time.Microsecond)
+		}
+	}()
+
+	time.Sleep(10 * time.Second)
+
+	fmt.Println(totalRequests)
 }
