@@ -7,6 +7,24 @@
 user = 'root'
 # the port to host the rest server on.
 port = 1337
+# secret used to validate that a key was actually issued by
+key_validation_secret='+s4W$#6ES7dxXD57S$%*Se58'
+# length of key data
+key_random_bytes=32
+# length of checksum portion of key
+key_checksum_bytes=8
+# rate limit for keys with no corresponding rate limit
+[server.key_auth_default_rl]
+limit=5
+reset=5000000000
+# rate limit for attempting to authenticate with a key (valid limit > 0)
+[server.key_auth_attempt_rl]
+limit=3
+reset=5000000000
+# rate limit for attempting to access a file anonymously
+[server.ip_anonymous_rl]
+limit=1
+reset=5000000000
 
 # this section is used to configure options
 # related to managing the files on disk.
@@ -35,7 +53,7 @@ path = './database'
 version = 1
 # the database solution
 # valid values: {'sqlite'}
-database_type = 'sqlite'
+type = 'sqlite'
 
 # this section manages the maximum size
 # of the program's caches and the intervals
