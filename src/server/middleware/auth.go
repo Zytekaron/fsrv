@@ -30,7 +30,7 @@ func authHandler(ctx *gin.Context, db dbutil.DBInterface, root, path string) {
 	dir := http.Dir(root)
 
 	//get resource data
-	resID, path, ok := extractResourceID(&dir, path)
+	resID, ok := extractResourceID(&dir, path)
 	if !ok {
 		ctx.AbortWithStatusJSON(403, response.Unauthorized)
 		return
@@ -80,6 +80,7 @@ func authHandler(ctx *gin.Context, db dbutil.DBInterface, root, path string) {
 	case entities.AccessAllowed:
 		ctx.Set("Resource", res)
 		ctx.Set("Key", key)
+		ctx.Set("path", path)
 		ctx.Next()
 	case entities.AccessDenied:
 		ctx.AbortWithStatusJSON(401, response.UnauthorizedExpired)
