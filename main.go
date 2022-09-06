@@ -10,7 +10,10 @@ import (
 )
 
 var cfg *config.Config
-var configPaths = []string{"/etc/fsrv/config.toml", "config.toml"}
+var configPaths = []string{
+	"/etc/fsrv/config.toml",
+	"config.toml",
+}
 
 func init() {
 	var err error
