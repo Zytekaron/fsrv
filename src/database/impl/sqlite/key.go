@@ -127,6 +127,9 @@ func (sqlite *SQLiteDB) GetKeyData(keyid string) (*entities.Key, error) {
 	err = row.Scan(&key.Comment, &rtlimID, &createMS, &expireMS)
 	if err != nil {
 		_ = tx.Rollback()
+		if err == sql.ErrNoRows {
+			return nil, database.ErrKeyMissing
+		}
 		return nil, err
 	}
 
