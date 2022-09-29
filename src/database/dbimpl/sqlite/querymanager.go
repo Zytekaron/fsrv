@@ -49,7 +49,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.InsRateLimitData, err = db.Prepare("INSERT INTO Ratelimits (ratelimitid, requests, reset) VALUES (?, ?, ?)") //CreateKey
+	qm.InsRateLimitData, err = db.Prepare("INSERT INTO Ratelimits (ratelimitid, requests, burst, reset) VALUES (?, ?, ?, ?)") //CreateKey
 	if err != nil {
 		return qm, err
 	}
@@ -91,7 +91,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.GetRateLimitDataByID, err = db.Prepare("SELECT requests, reset FROM Ratelimits WHERE ratelimitid = ?") //GetKeyData
+	qm.GetRateLimitDataByID, err = db.Prepare("SELECT requests, burst, reset FROM Ratelimits WHERE ratelimitid = ?") //GetKeyData
 	if err != nil {
 		return qm, err
 	}
@@ -135,7 +135,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.UpdRateLimitData, err = db.Prepare("UPDATE Ratelimits SET ratelimitid = ?, requests=?, requests = ? WHERE ratelimitid = ?")
+	qm.UpdRateLimitData, err = db.Prepare("UPDATE Ratelimits SET ratelimitid = ?, requests = ?, burst = ?, reset = ? WHERE ratelimitid = ?")
 	if err != nil {
 		return qm, err
 	}

@@ -2,6 +2,7 @@ CREATE TABLE Ratelimits
 (
     ratelimitid TEXT PRIMARY KEY,
     requests    INTEGER NOT NULL, -- number of requests in a given period
+    burst       INTEGER NOT NULL, -- number of requests allowed in a short burst
     reset       INTEGER NOT NULL  -- timestamp for reset (unix millis)
 );
 

@@ -9,7 +9,7 @@ import (
 )
 
 func (sqlite *SQLiteDB) CreateRateLimit(limit *entities.RateLimit) error {
-	_, err := sqlite.qm.InsRateLimitData.Exec(limit.ID, limit.Limit, limit.Reset)
+	_, err := sqlite.qm.InsRateLimitData.Exec(limit.ID, limit.Limit, limit.Burst, limit.Reset)
 	return err
 }
 
@@ -18,7 +18,7 @@ func (sqlite *SQLiteDB) DeleteRateLimit(rateLimitID string) error {
 	if err != nil {
 		return err
 	}
-	stmt := tx.Stmt(sqlite.qm.UpdRateLimitData)
+	stmt := tx.Stmt(sqlite.qm.DelRateLimitByID)
 	_, err = stmt.Exec(rateLimitID)
 	if err != nil {
 		return err
@@ -45,7 +45,7 @@ func (sqlite *SQLiteDB) GetRateLimitData(ratelimitid string) (*entities.RateLimi
 	row := sqlite.qm.GetRateLimitDataByID.QueryRow(ratelimitid)
 	var rateLimit entities.RateLimit
 	var reset int64
-	err := row.Scan(&rateLimit.Limit, &reset)
+	err := row.Scan(&rateLimit.Limit, &rateLimit.Burst, &reset)
 	if err != nil {
 		return nil, err
 	}
@@ -61,7 +61,7 @@ func (sqlite *SQLiteDB) UpdateRateLimit(rateLimitID string, rateLimit *entities.
 		return err
 	}
 	stmt := tx.Stmt(sqlite.qm.UpdRateLimitData)
-	res, err := stmt.Exec(rateLimitID, rateLimit.ID, rateLimit.Limit, rateLimit.Reset)
+	res, err := stmt.Exec(rateLimitID, rateLimit.ID, rateLimit.Limit, rateLimit.Burst, rateLimit.Reset)
 	if err != nil {
 		return err
 	}
