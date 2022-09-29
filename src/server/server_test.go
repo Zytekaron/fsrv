@@ -88,8 +88,7 @@ func TestRequestServer(t *testing.T) {
 				url := fmt.Sprintf("http://127.0.0.1:1337/bad/?key=%s", key)
 				req, _ := http.NewRequest("GET", url, nil)
 				_, _ = http.DefaultClient.Do(req)
-				elapsed := time.Since(start)
-				atomic.AddInt64(&totalTime, int64(elapsed))
+				atomic.AddInt64(&totalTime, int64(time.Since(start)))
 
 				time.Sleep(20 * time.Microsecond)
 				atomic.AddInt64(&totalRequests, 1)
@@ -99,11 +98,10 @@ func TestRequestServer(t *testing.T) {
 		go func() {
 			client := http.Client{}
 			for i := 0; true; i++ {
+				start := time.Now()
 				url := fmt.Sprintf("http://127.0.0.1:1337/cool/path/%d", i)
 				_, _ = client.Get(url)
-				start := time.Now()
-				elapsed := time.Since(start)
-				atomic.AddInt64(&totalTime, int64(elapsed))
+				atomic.AddInt64(&totalTime, int64(time.Since(start)))
 				time.Sleep(20 * time.Microsecond)
 				atomic.AddInt64(&totalRequests, 1)
 			}
@@ -117,8 +115,7 @@ func TestRequestServer(t *testing.T) {
 					start := time.Now()
 					url := fmt.Sprintf("http://127.0.0.1:1337/?key=%s", key)
 					_, _ = client.Get(url)
-					elapsed := time.Since(start)
-					atomic.AddInt64(&totalTime, int64(elapsed))
+					atomic.AddInt64(&totalTime, int64(time.Since(start)))
 					atomic.AddInt64(&totalRequests, 1)
 					time.Sleep(20 * time.Microsecond)
 				}
@@ -130,7 +127,7 @@ func TestRequestServer(t *testing.T) {
 	time.Sleep(10 * time.Second)
 
 	dursum := time.Duration(totalTime / totalRequests)
-	fmt.Printf("Average time: %dµs\n", dursum.Microseconds())
+	fmt.Printf("Average time: %s\n", dursum.String())
 
 	fmt.Println("total requests:", totalRequests)
 }
