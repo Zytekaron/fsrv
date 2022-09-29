@@ -59,9 +59,11 @@ func TestServer(t *testing.T) {
 
 	i := 1
 	go func() {
-		time.Sleep(1 * time.Second)
-		t.Log("second: ", i)
-		i++
+		for {
+			time.Sleep(1 * time.Second)
+			t.Log("second: ", i)
+			i++
+		}
 	}()
 	time.Sleep(15 * time.Second)
 }
@@ -75,90 +77,60 @@ func TestRequestServer(t *testing.T) {
 	t.Log(">MAKING REQUESTS")
 
 	totalRequests := int64(0)
+	totalTime := int64(0)
+	for i := 0; i < 3; i++ {
+		go func() {
+			size, _ := keygen.GetKeySize(randSize, checkSize)
+			for {
+				start := time.Now()
+				d := keygen.GetRand(size)
+				key := base64.RawURLEncoding.EncodeToString(d)
+				url := fmt.Sprintf("http://127.0.0.1:1337/bad/?key=%s", key)
+				req, _ := http.NewRequest("GET", url, nil)
+				_, _ = http.DefaultClient.Do(req)
+				elapsed := time.Since(start)
+				atomic.AddInt64(&totalTime, int64(elapsed))
 
-	go func() {
-		size, _ := keygen.GetKeySize(randSize, checkSize)
-		for {
-			d := keygen.GetRand(size)
-			key := base64.RawURLEncoding.EncodeToString(d)
-			url := fmt.Sprintf("http://127.0.0.1:1337/bad/?key=%s", key)
-			req, _ := http.NewRequest("GET", url, nil)
-			res, _ := http.DefaultClient.Do(req)
-			//if err != nil {
-			//	t.Log(err)
-			//	t.Fail()
-			//}
-			if res != nil {
-				//body, _ := io.ReadAll(res.Body)
-				//fmt.Println(res)
-				//fmt.Println(string(body))
-				//err = res.Body.Close()
-				//if err != nil {
-				//	t.Log(err)
-				//	t.Fail()
-				//}
+				time.Sleep(20 * time.Microsecond)
+				atomic.AddInt64(&totalRequests, 1)
 			}
+		}()
 
-			time.Sleep(20 * time.Microsecond)
-			atomic.AddInt64(&totalRequests, 1)
-		}
-	}()
+		go func() {
+			client := http.Client{}
+			for i := 0; i < 20000000000; i++ {
+				url := fmt.Sprintf("http://127.0.0.1:1337/cool/path/%d", i)
+				_, _ = client.Get(url)
+				start := time.Now()
+				elapsed := time.Since(start)
+				atomic.AddInt64(&totalTime, int64(elapsed))
+				time.Sleep(20 * time.Microsecond)
+				atomic.AddInt64(&totalRequests, 1)
+			}
+		}()
 
-	go func() {
-		client := http.Client{}
-		for i := 0; i < 20000000000; i++ {
-			url := fmt.Sprintf("http://127.0.0.1:1337/cool/path/%d", i)
-			_, _ = client.Get(url)
-			//if err != nil {
-			//	t.Log(err)
-			//	t.Fail()
-			//}
-			//if res != nil {
-			//body, _ := io.ReadAll(res.Body)
-			//fmt.Println(res)
-			//fmt.Println(string(body))
-			//err = res.Body.Close()
-			//if err != nil {
-			//	t.Log(err)
-			//	t.Fail()
-			//}
-			//}
-			time.Sleep(20 * time.Microsecond)
-			atomic.AddInt64(&totalRequests, 1)
-		}
-	}()
-
-	go func() {
-		client := http.Client{}
-		for _, key := range keys {
-			key := key
-			go func() {
-				for i := 0; i < 10; i++ {
+		go func() {
+			client := http.Client{}
+			for _, key := range keys {
+				key := key
+				for i := 0; i < 4; i++ {
+					start := time.Now()
 					url := fmt.Sprintf("http://127.0.0.1:1337/?key=%s", key)
 					_, _ = client.Get(url)
-					//if err != nil {
-					//	t.Log(err)
-					//	t.Fail()
-					//}
-					//if res != nil {
-					//body, _ := io.ReadAll(res.Body)
-					//fmt.Println(res)
-					//fmt.Println(string(body))
-					//err = res.Body.Close()
-					//if err != nil {
-					//	t.Log(err)
-					//	t.Fail()
-					//}
-					//}
+					elapsed := time.Since(start)
+					atomic.AddInt64(&totalTime, int64(elapsed))
 					atomic.AddInt64(&totalRequests, 1)
 					time.Sleep(20 * time.Microsecond)
 				}
-			}()
-			time.Sleep(100 * time.Microsecond)
-		}
-	}()
+				time.Sleep(100 * time.Microsecond)
+			}
+		}()
+	}
 
 	time.Sleep(10 * time.Second)
 
-	fmt.Println(totalRequests)
+	dursum := time.Duration(totalTime / totalRequests)
+	fmt.Printf("Average time: %dµs\n", dursum.Microseconds())
+
+	fmt.Println("total requests:", totalRequests)
 }
