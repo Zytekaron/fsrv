@@ -127,8 +127,17 @@ func makeKeys(db *SQLiteDB) error {
 		CreatedAt:   serde.Time(time.Now()),
 	}
 
+	kValid := entities.Key{
+		ID:          "HYfe_nbGcrwPHpHvAtlUxtSdUw1GMv9QjJtlJrwae2iSIDZehr5opg",
+		Comment:     "a real, genuine key, minted right here in fsrv.",
+		Roles:       []string{"obsidian", "diamond"},
+		RateLimitID: "LowLimitFastReset",
+		ExpiresAt:   serde.Time(time.Now().AddDate(10, 0, 0)),
+		CreatedAt:   serde.Time(time.Now()),
+	}
+
 	//create keys
-	keys := []*entities.Key{&k1, &k2, &k3, &k4, &k5, &k6}
+	keys := []*entities.Key{&k1, &k2, &k3, &k4, &k5, &k6, &kValid}
 	for _, k := range keys {
 		err := db.CreateKey(k)
 		if err != nil {
@@ -325,6 +334,18 @@ func createRateLimits(t *testing.T, db *SQLiteDB) (errs []error) {
 	return errs
 }
 
+func createDupeKey(db *SQLiteDB) error {
+	kValidDupe := entities.Key{
+		ID:          "HYfe_nbGcrwPHpHvAtlUxtSdUw1GMv9QjJtlJrwae2iSIDZehr5opg",
+		Comment:     "a poor immitation of the original, but nevertheless a valid key",
+		Roles:       []string{"jade", "diamond"},
+		RateLimitID: "STRICT_LIMIT",
+		ExpiresAt:   serde.Time(time.Now().AddDate(1, 0, 0)),
+		CreatedAt:   serde.Time(time.Now()),
+	}
+	return db.CreateKey(&kValidDupe)
+}
+
 func TestSQLite(t *testing.T) {
 	db := getDB()
 	bap(t, makeRoles(db))
@@ -338,8 +359,11 @@ func TestSQLite(t *testing.T) {
 	keys, err := db.GetKeyIDs(1000, 0)
 	bap(t, err)
 	bap(t, getRatelimitsForAllKeys(t, db, keys)...)
-	bap(t, giveRoles(t, db)...)
-	bap(t, takeRoles(t, db)...)
+	//bap(t, giveRoles(t, db)...)
+	//bap(t, takeRoles(t, db)...)
 	_, err = db.GetKeyRateLimitID("idontexist")
 	t.Logf("Correct Error? %t", err == database.ErrKeyMissing)
+	t.Logf("Creating duplicate key: %t", createDupeKey(db))
+	k, _ := db.GetKeyData("HYfe_nbGcrwPHpHvAtlUxtSdUw1GMv9QjJtlJrwae2iSIDZehr5opg")
+	t.Logf("Printing key: %+v ", k)
 }
