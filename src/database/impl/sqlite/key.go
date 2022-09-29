@@ -6,6 +6,7 @@ import (
 	"fsrv/src/database"
 	"fsrv/src/database/entities"
 	"fsrv/utils/serde"
+	"github.com/mattn/go-sqlite3"
 	"time"
 )
 
@@ -25,6 +26,9 @@ func (sqlite *SQLiteDB) CreateKey(key *entities.Key) error {
 	_, err = stmt.Exec(key.ID, key.Comment, key.RateLimitID, time.Time(key.ExpiresAt).UnixMilli(), time.Time(key.CreatedAt).UnixMilli())
 	if err != nil {
 		rollbackOrPanic(tx)
+		if err == sqlite3.ErrConstraintUnique {
+			return database.ErrKeyDuplicate
+		}
 		return err
 	}
 
