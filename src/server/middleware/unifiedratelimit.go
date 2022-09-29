@@ -111,9 +111,11 @@ func UnifiedRateLimit(db database.DBInterface, serverCfg *config.Server) gin.Han
 				return
 			}
 
+			// database query issue
 			log.Println("error getting key from database:", err)
 			return
 		}
+		ctx.Set("key", key)
 
 		// ensure the key has not since expired.
 		// if it has, draw from the attempt keyBucket.
@@ -124,7 +126,7 @@ func UnifiedRateLimit(db database.DBInterface, serverCfg *config.Server) gin.Han
 		}
 
 		// if the key doesn't specify a rate limit id,
-		// use the default global ip-based one.
+		// use the default authenticated rate limit.
 		if key.RateLimitID == "" {
 			sb := defaultRLManager.Get(ip)
 			if !sb.Draw(1) {
@@ -143,10 +145,8 @@ func UnifiedRateLimit(db database.DBInterface, serverCfg *config.Server) gin.Han
 			// one case per rate limit id: a manager does not exist. create one.
 			rateLimit, err := db.GetRateLimitData(key.RateLimitID)
 			if err != nil {
-				// always an issue with the server. if the
-				// rate limit doesn't exist, the issue is
-				// caused by bad administration. otherwise,
-				// a database issue was encountered.
+				// always an issue with the server. if the rate limit doesn't exist, the issue
+				// is caused by bad administration. otherwise, a database issue was encountered.
 				if err == sql.ErrNoRows {
 					log.Println("missing rate limit in database with id:", key.RateLimitID)
 				} else {
@@ -163,12 +163,9 @@ func UnifiedRateLimit(db database.DBInterface, serverCfg *config.Server) gin.Han
 		}
 		suiteModMux.Unlock()
 
-		// the key has passed validation checks.
-		// get a rate limiting bucket for the key's own rate limit.
-		keyBucket := keyBM.Get(keyID)
-
-		// verify that the key has not exceeded its own rate limit.
-		if !keyBucket.Draw(1) {
+		// the key has passed validation checks. now, just verify
+		// that the key has not exceeded its own rate limit.
+		if !keyBM.Draw(keyID, 1) {
 			ctx.AbortWithStatusJSON(429, response.TooManyRequests)
 			return
 		}
