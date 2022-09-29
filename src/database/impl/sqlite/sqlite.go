@@ -15,8 +15,6 @@ type SQLiteDB struct {
 	qm *QueryManager
 }
 
-const connParams = "?cache=shared&mode=rwc&_journal_mode=WAL"
-
 /////////////////////////////////////////
 //									   //
 /*-------------------------------------*\
@@ -34,7 +32,7 @@ const connParams = "?cache=shared&mode=rwc&_journal_mode=WAL"
 var sqliteDatabaseCreationQuery string
 
 func Create(databaseFile string) (*SQLiteDB, error) {
-	db, err := sql.Open("sqlite3", databaseFile+connParams)
+	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
 		return nil, err
 	}
@@ -55,7 +53,7 @@ func Create(databaseFile string) (*SQLiteDB, error) {
 }
 
 func Open(databaseFile string) (*SQLiteDB, error) {
-	db, err := sql.Open("sqlite3", databaseFile+connParams)
+	db, err := sql.Open("sqlite3", databaseFile)
 	if err != nil {
 		return nil, err
 	}
