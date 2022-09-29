@@ -43,8 +43,8 @@ const urlRateLimitPurgeInterval = 10 * time.Minute
 //	 key -> entities.Key (optional)
 func UnifiedRateLimit(db database.DBInterface, serverCfg *config.Server) gin.HandlerFunc {
 	anonRLManager := unifiedNewRL(serverCfg.IPAnonymousRL)
-	attemptRLManager := unifiedNewRL(serverCfg.KeyAuthAttemptRL)
-	defaultRLManager := unifiedNewRL(serverCfg.KeyAuthDefaultRL)
+	attemptRLManager := unifiedNewRL(serverCfg.AuthAttemptRL)
+	defaultRLManager := unifiedNewRL(serverCfg.AuthDefaultRL)
 
 	keyRLSuite := syncrl.New()
 	utils.Executor(urlRateLimitPurgeInterval, func() {
@@ -125,7 +125,7 @@ func UnifiedRateLimit(db database.DBInterface, serverCfg *config.Server) gin.Han
 		// if the key doesn't specify a rate limit id,
 		// use the default global ip-based one.
 		if key.RateLimitID == "" {
-			sb := anonRLManager.Get(ip)
+			sb := defaultRLManager.Get(ip)
 			if !sb.Draw(1) {
 				ctx.AbortWithStatusJSON(429, response.TooManyRequests)
 				return

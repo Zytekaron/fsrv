@@ -9,10 +9,11 @@ import (
 
 var ErrNotFound = errors.New("no configuration file found")
 
-type DatabaseImpl string
+type DatabaseType string
 
 const (
-	DatabaseSQLite DatabaseImpl = "sqlite"
+	DatabaseSQLite  DatabaseType = "sqlite"
+	DatabaseMariaDB DatabaseType = "mariadb"
 )
 
 type Config struct {
@@ -29,9 +30,9 @@ type Server struct {
 	KeyValidationSecret string              `toml:"key_validation_secret"`
 	KeyRandomBytes      int                 `toml:"key_random_bytes"`
 	KeyCheckBytes       int                 `toml:"key_checksum_bytes"`
-	KeyAuthDefaultRL    *entities.RateLimit `toml:"key_auth_default_rl"`
-	KeyAuthAttemptRL    *entities.RateLimit `toml:"key_auth_attempt_rl"`
 	IPAnonymousRL       *entities.RateLimit `toml:"ip_anonymous_rl"`
+	AuthAttemptRL       *entities.RateLimit `toml:"auth_attempt_rl"`
+	AuthDefaultRL       *entities.RateLimit `toml:"auth_default_rl"`
 }
 
 type FileManager struct {
@@ -40,9 +41,9 @@ type FileManager struct {
 }
 
 type Database struct {
-	Path    string       `toml:"path"`
-	Version int          `toml:"version"`
-	Type    DatabaseImpl `toml:"type"`
+	Type             DatabaseType `toml:"type"`
+	Version          int          `toml:"version"`
+	ConnectionString string       `toml:"connection_string"`
 }
 
 type Cache struct {
