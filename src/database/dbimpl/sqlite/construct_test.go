@@ -309,10 +309,10 @@ func takeRoles(t *testing.T, db *SQLiteDB) (errs []error) {
 
 func createRateLimits(t *testing.T, db *SQLiteDB) (errs []error) {
 	limits := []entities.RateLimit{
-		{"DEFAULT", 20, 60},
-		{"high limit", 200, 60},
-		{"LowLimitFastReset", 2, 1},
-		{"STRICT_LIMIT", 1, 60},
+		{"DEFAULT", 20, 20, serde.Duration(60 * time.Second)},
+		{"high limit", 200, 200, serde.Duration(60 * time.Second)},
+		{"LowLimitFastReset", 2, 10, serde.Duration(1 * time.Second)},
+		{"STRICT_LIMIT", 1, 10, serde.Duration(60 * time.Second)},
 	}
 	var err error
 	for _, lim := range limits {
