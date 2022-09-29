@@ -1,4 +1,4 @@
-package middleware
+package filesmw
 
 import (
 	"github.com/gin-gonic/gin"

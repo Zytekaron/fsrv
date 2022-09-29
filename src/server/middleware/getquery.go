@@ -15,7 +15,7 @@ type QueryParseFunc[V any] func(value string, present bool) (result V, err error
 //		Added Context Fields:
 //		 Variable; name and type provided by caller.
 //	  If a property by the given name is already
-//	  present, this middleware will panic.
+//	  present, this adminmw will panic.
 func GetQuery[V any](param, name string, parse QueryParseFunc[V]) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if _, ok := ctx.Get(name); ok {

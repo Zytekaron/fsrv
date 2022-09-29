@@ -1,4 +1,4 @@
-package middleware
+package filesmw
 
 import (
 	"fsrv/src/database"

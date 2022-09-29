@@ -1,4 +1,4 @@
-package middleware
+package filesmw
 
 import (
 	"fsrv/src/database/entities"
@@ -55,7 +55,7 @@ func ConcurrentRequestLimit(readLimit, writeLimit int) gin.HandlerFunc {
 
 // TODO: get the mode based on the information about the request.
 //
-//	maybe involve another prerequisite middleware to assign the
+//	maybe involve another prerequisite adminmw to assign the
 //	request type to the context for use within here and ratelimiting.
 func crlGetMode(ctx *gin.Context) types.OperationType {
 	return types.OperationRead

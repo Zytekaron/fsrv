@@ -1,4 +1,4 @@
-package server
+package files
 
 import (
 	"encoding/base64"
@@ -29,11 +29,11 @@ func setup() {
 func run() {
 	db, err := dbutil.Create(cfg.Database)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("err with db:", err)
 	}
-	cachedDB := cache.NewCache(db)
+	db = cache.NewCache(cfg.Cache, db)
 
-	serv := New(cachedDB, cfg)
+	serv := New(cfg, db, nil)
 
 	addr := ":" + strconv.Itoa(int(cfg.Server.Port))
 	err = serv.Start(addr)
@@ -42,7 +42,7 @@ func run() {
 	}
 }
 
-func makeKeys( /*t *testing.T,*/ numKeys, keySize, checksumBytes int, salt []byte) (keys []string) {
+func makeKeys( /*t *testing.V,*/ numKeys, keySize, checksumBytes int, salt []byte) (keys []string) {
 	for i := 0; i < numKeys; i++ {
 		kStr := keygen.GetRand(keySize)
 		key := keygen.MintKey(kStr, salt, checksumBytes)
