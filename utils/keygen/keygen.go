@@ -2,8 +2,8 @@ package keygen
 
 import (
 	"crypto/rand"
-	"crypto/sha512"
 	"encoding/base64"
+	"fsrv/utils"
 	"log"
 	"math"
 )
@@ -15,16 +15,8 @@ func GetKeySize(randomBytes, checksumBytes int) (randSize, checkSize int) {
 	return
 }
 
-func getSum(data ...[]byte) []byte {
-	sha := sha512.New()
-	for _, d := range data {
-		sha.Write(d)
-	}
-	return sha.Sum(nil)
-}
-
 func MintKey(key, salt []byte, checksumBytes int) string {
-	sum := getSum(key, salt)[:checksumBytes]
+	sum := utils.Sha512Sum(key, salt)[:checksumBytes]
 	return base64.RawURLEncoding.EncodeToString(append(key, sum...))
 }
 
