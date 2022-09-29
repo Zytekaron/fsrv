@@ -37,19 +37,12 @@ func Create(databaseFile string) (*SQLiteDB, error) {
 		return nil, err
 	}
 
-	sqliteDB := SQLiteDB{db, nil}
-
 	_, err = db.Exec(sqliteDatabaseCreationQuery)
 	if err != nil {
 		return nil, err
 	}
 
-	sqliteDB.qm, err = NewQueryManager(db)
-	if err != nil {
-		return nil, err
-	}
-
-	return &sqliteDB, nil
+	return produceObj(db)
 }
 
 func Open(databaseFile string) (*SQLiteDB, error) {
@@ -58,17 +51,16 @@ func Open(databaseFile string) (*SQLiteDB, error) {
 		return nil, err
 	}
 
-	qm, err := NewQueryManager(db)
-	if err != nil {
-		return nil, err
-	}
+	return produceObj(db)
+}
 
-	sqliteDB := SQLiteDB{db, qm}
+func produceObj(sqlDB *sql.DB) (dbObj *SQLiteDB, err error) {
+	dbObj = &SQLiteDB{sqlDB, nil}
+	dbObj.qm, err = NewQueryManager(sqlDB)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("QueryManager Init: " + err.Error())
 	}
-
-	return &sqliteDB, nil
+	return dbObj, nil
 }
 
 func Exists(databaseFile string) error {
