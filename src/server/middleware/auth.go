@@ -21,6 +21,7 @@ func Auth(db database.DBInterface, cfg *config.FileManager) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		c, cancel := context.WithTimeout(ctx, 10*time.Second)
 		defer cancel()
+
 		authHandler(ctx, db, root, extractResPath(ctx))
 		c.Done()
 	}
@@ -70,7 +71,7 @@ func authHandler(ctx *gin.Context, db database.DBInterface, root, path string) {
 
 	//check key expiry
 	if key.IsExpired() {
-		ctx.AbortWithStatusJSON(401, response.UnauthorizedExpired)
+		ctx.AbortWithStatusJSON(401, response.ForbiddenExpiredKey)
 		return
 	}
 
@@ -78,12 +79,12 @@ func authHandler(ctx *gin.Context, db database.DBInterface, root, path string) {
 	status := res.CheckAccess(key, getAccessType(ctx))
 	switch status {
 	case entities.AccessAllowed:
-		ctx.Set("Resource", res)
-		ctx.Set("Key", key)
+		ctx.Set("resource", res)
+		ctx.Set("key", key)
 		ctx.Set("path", path)
 		ctx.Next()
 	case entities.AccessDenied:
-		ctx.AbortWithStatusJSON(401, response.UnauthorizedExpired)
+		ctx.AbortWithStatusJSON(401, response.ForbiddenExpiredKey)
 		return
 	case entities.AccessNeutral:
 		authHandler(ctx, db, root, filepath.Dir(strings.TrimSuffix(root, "/")))
