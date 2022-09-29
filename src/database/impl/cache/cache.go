@@ -121,12 +121,16 @@ func (c *CacheDB) GetKeyIDs(pageSize int, offset int) ([]string, error) {
 }
 
 func (c *CacheDB) GetKeyData(keyID string) (*entities.Key, error) {
+	c.keyCache.RWMu.RLock()
 	key, ok := c.keyCache.C.Get(keyID)
 	if ok {
+		c.keyCache.RWMu.RLock()
 		return key.V, key.Err
 	} else {
+		c.keyCache.RWMu.Lock()
 		key, err := c.db.GetKeyData(keyID)
 		c.keyCache.C.Put(keyID, tErr[*entities.Key]{key, err})
+		c.keyCache.RWMu.RLock()
 		return key, err
 	}
 }
