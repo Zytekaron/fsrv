@@ -42,7 +42,7 @@ func run() {
 	}
 }
 
-func makeKeys(t *testing.T, numKeys, keySize, checksumBytes int, salt []byte) (keys []string) {
+func makeKeys( /*t *testing.T,*/ numKeys, keySize, checksumBytes int, salt []byte) (keys []string) {
 	for i := 0; i < numKeys; i++ {
 		kStr := keygen.GetRand(keySize)
 		key := keygen.MintKey(kStr, salt, checksumBytes)
@@ -72,7 +72,7 @@ func TestRequestServer(t *testing.T) {
 	setup()
 
 	randSize, checkSize := cfg.Server.KeyRandomBytes, cfg.Server.KeyCheckBytes
-	keys := makeKeys(t, 20000, randSize, checkSize, []byte(cfg.Server.KeyValidationSecret))
+	keys := makeKeys( /*t,*/ 20000, randSize, checkSize, []byte(cfg.Server.KeyValidationSecret))
 
 	t.Log(">MAKING REQUESTS")
 
@@ -98,7 +98,7 @@ func TestRequestServer(t *testing.T) {
 
 		go func() {
 			client := http.Client{}
-			for i := 0; i < 20000000000; i++ {
+			for i := 0; true; i++ {
 				url := fmt.Sprintf("http://127.0.0.1:1337/cool/path/%d", i)
 				_, _ = client.Get(url)
 				start := time.Now()
