@@ -4,94 +4,27 @@ import (
 	"fsrv/src/database"
 	"fsrv/src/database/entities"
 	"github.com/zyedidia/generic/cache"
-	"log"
-	"sync"
 )
-
-type tErr[T any] struct {
-	V   T
-	Err error
-}
-
-type cacheMu[K comparable, V any] struct {
-	C    *cache.Cache[K, V]
-	RWMu sync.RWMutex
-}
 
 type CacheDB struct {
 	db               database.DBInterface
-	resourceCache    cacheMu[string, tErr[*entities.Resource]]
-	keyCache         cacheMu[string, tErr[*entities.Key]]
-	roleCache        cacheMu[string, tErr[*entities.Role]]
-	rateLimitCache   cacheMu[string, tErr[*entities.RateLimit]]
-	rateLimitIDCache cacheMu[string, tErr[string]]
-	tokenCache       cacheMu[string, tErr[*entities.Token]] //todo: build out infrastructure for tokens
-}
-
-type retrieveFunc[T any] func() (T, error)
-type createFunc func() error
-
-type taggedType interface {
-	GetID() string
-}
-
-func retrieveData[T any](cache *cache.Cache[string, tErr[T]], key string, mu *sync.RWMutex, retrieveFn retrieveFunc[T]) (T, error) {
-	mu.RLock()
-	data, ok := cache.Get(key)
-	if ok {
-		mu.RUnlock()
-		return data.V, data.Err
-	}
-	mu.RUnlock()
-	mu.Lock()
-	freshData, err := retrieveFn()
-	cache.Put(key, tErr[T]{freshData, err})
-	mu.Unlock()
-	return freshData, err
-}
-
-func createData[T taggedType](cache *cache.Cache[string, tErr[T]], data T, mu *sync.RWMutex, createFn createFunc) error {
-	err := createFn()
-	if err != nil {
-		return err
-	}
-	mu.Lock()
-	cache.Put(data.GetID(), tErr[T]{data, nil})
-	mu.Unlock()
-	return nil
-}
-
-func updateData[T taggedType](cache *cache.Cache[string, tErr[T]], mu *sync.RWMutex, createFn createFunc, retrieveFn retrieveFunc[T]) error {
-	err := createFn()
-	if err != nil {
-		return err
-	}
-	data, err := retrieveFn()
-	if err != nil {
-		log.Fatalf("ERROR: CACHE INCONSISTENCY DETETECTED: %e", err)
-		return err
-	}
-	mu.Lock()
-	cache.Put(data.GetID(), tErr[T]{data, nil})
-	mu.Unlock()
-	return nil
-}
-
-func newCacheMu[K comparable, V any](cash *cache.Cache[K, V]) cacheMu[K, V] {
-	return cacheMu[K, V]{
-		C: cash,
-	}
+	resourceCache    *mutexCache[string, result[*entities.Resource]]
+	keyCache         *mutexCache[string, result[*entities.Key]]
+	roleCache        *mutexCache[string, result[*entities.Role]]
+	rateLimitCache   *mutexCache[string, result[*entities.RateLimit]]
+	rateLimitIDCache *mutexCache[string, result[string]]
+	tokenCache       *mutexCache[string, result[*entities.Token]] // todo: build out infrastructure for tokens
 }
 
 func NewCache(db database.DBInterface) *CacheDB {
 	return &CacheDB{
 		db:               db,
-		resourceCache:    newCacheMu(cache.New[string, tErr[*entities.Resource]](200)),
-		keyCache:         newCacheMu(cache.New[string, tErr[*entities.Key]](1000)),
-		roleCache:        newCacheMu(cache.New[string, tErr[*entities.Role]](25)),
-		rateLimitCache:   newCacheMu(cache.New[string, tErr[*entities.RateLimit]](500)),
-		rateLimitIDCache: newCacheMu(cache.New[string, tErr[string]](50)),
-		tokenCache:       newCacheMu(cache.New[string, tErr[*entities.Token]](25)),
+		resourceCache:    newMutexCache(cache.New[string, result[*entities.Resource]](200)),
+		keyCache:         newMutexCache(cache.New[string, result[*entities.Key]](1000)),
+		roleCache:        newMutexCache(cache.New[string, result[*entities.Role]](25)),
+		rateLimitCache:   newMutexCache(cache.New[string, result[*entities.RateLimit]](500)),
+		rateLimitIDCache: newMutexCache(cache.New[string, result[string]](50)),
+		tokenCache:       newMutexCache(cache.New[string, result[*entities.Token]](25)),
 	}
 }
 
@@ -100,12 +33,14 @@ func (c *CacheDB) CreateKey(key *entities.Key) error {
 	if err != nil {
 		return err
 	}
-	c.keyCache.C.Put(key.ID, tErr[*entities.Key]{key, err})
+	c.keyCache.Put(key.ID, result[*entities.Key]{key, err})
 	return nil
 }
 
 func (c *CacheDB) CreateResource(resource *entities.Resource) error {
-	return createData(c.resourceCache.C, resource, &c.resourceCache.RWMu, func() error { return c.db.CreateResource(resource) })
+	return createData(c.resourceCache, resource, func() error {
+		return c.db.CreateResource(resource)
+	})
 }
 
 func (c *CacheDB) CreateRole(role *entities.Role) error {
@@ -113,7 +48,9 @@ func (c *CacheDB) CreateRole(role *entities.Role) error {
 }
 
 func (c *CacheDB) CreateRateLimit(limit *entities.RateLimit) error {
-	return createData(c.rateLimitCache.C, limit, &c.rateLimitCache.RWMu, func() error { return c.db.CreateRateLimit(limit) })
+	return createData(c.rateLimitCache, limit, func() error {
+		return c.db.CreateRateLimit(limit)
+	})
 }
 
 func (c *CacheDB) GetKeys(pageSize int, offset int) ([]*entities.Key, error) {
@@ -127,18 +64,15 @@ func (c *CacheDB) GetKeyIDs(pageSize int, offset int) ([]string, error) {
 }
 
 func (c *CacheDB) GetKeyData(keyID string) (*entities.Key, error) {
-	c.keyCache.RWMu.RLock()
-	key, ok := c.keyCache.C.Get(keyID)
+	res, ok := c.keyCache.Get(keyID)
 	if ok {
-		c.keyCache.RWMu.RLock()
-		return key.V, key.Err
-	} else {
-		c.keyCache.RWMu.Lock()
-		key, err := c.db.GetKeyData(keyID)
-		c.keyCache.C.Put(keyID, tErr[*entities.Key]{key, err})
-		c.keyCache.RWMu.RLock()
-		return key, err
+		return res.Val, res.Err
 	}
+
+	key, err := c.db.GetKeyData(keyID)
+	// todo: check if the error should be kept before caching
+	c.keyCache.Put(keyID, result[*entities.Key]{key, err})
+	return key, err
 }
 
 func (c *CacheDB) GetResources(pageSize int, offset int) ([]*entities.Resource, error) {
@@ -152,7 +86,7 @@ func (c *CacheDB) GetResourceIDs(pageSize int, offset int) ([]string, error) {
 }
 
 func (c *CacheDB) GetResourceData(resourceID string) (*entities.Resource, error) {
-	return retrieveData[*entities.Resource](c.resourceCache.C, resourceID, &c.resourceCache.RWMu, func() (*entities.Resource, error) {
+	return retrieveData[*entities.Resource](c.resourceCache, resourceID, func() (*entities.Resource, error) {
 		data, err := c.db.GetResourceData(resourceID)
 		return data, err
 	})
@@ -164,7 +98,7 @@ func (c *CacheDB) GetRoles(pageSize int, offset int) ([]string, error) {
 }
 
 func (c *CacheDB) GiveRole(keyID string, role ...string) error {
-	return updateData[*entities.Key](c.keyCache.C, &c.keyCache.RWMu, func() error {
+	return updateData[*entities.Key](c.keyCache, func() error {
 		return c.db.GiveRole(keyID, role...)
 	}, func() (*entities.Key, error) {
 		return c.db.GetKeyData(keyID)
@@ -172,7 +106,7 @@ func (c *CacheDB) GiveRole(keyID string, role ...string) error {
 }
 
 func (c *CacheDB) TakeRole(keyID string, role ...string) error {
-	return updateData[*entities.Key](c.keyCache.C, &c.keyCache.RWMu, func() error {
+	return updateData[*entities.Key](c.keyCache, func() error {
 		return c.db.TakeRole(keyID, role...)
 	}, func() (*entities.Key, error) {
 		return c.db.GetKeyData(keyID)
@@ -197,8 +131,8 @@ func (c *CacheDB) GrantPermission(permission *entities.Permission, roles ...stri
 		res.OperationNodes[resOpAccess] = permission.Status
 	}
 
-	c.resourceCache.C.Put(permission.ResourceID, tErr[*entities.Resource]{res, nil})
-
+	// todo: check if the error should be kept before caching
+	c.resourceCache.Put(permission.ResourceID, result[*entities.Resource]{res, nil})
 	return err
 }
 
@@ -219,15 +153,15 @@ func (c *CacheDB) RevokePermission(permission *entities.Permission, roles ...str
 		delete(res.OperationNodes, resOpAccess)
 	}
 
-	c.resourceCache.C.Put(permission.ResourceID, tErr[*entities.Resource]{res, nil})
-
+	// todo: check if the error should be kept before caching
+	c.resourceCache.Put(permission.ResourceID, result[*entities.Resource]{res, nil})
 	return err
 }
 
 // SetRateLimit
 // NOTE: mutates underlying key to use given limitID
 func (c *CacheDB) SetRateLimit(key *entities.Key, limitID string) error {
-	return createData[*entities.Key](c.keyCache.C, key, &c.keyCache.RWMu, func() error {
+	return createData[*entities.Key](c.keyCache, key, func() error {
 		err := c.db.SetRateLimit(key, limitID) //attempt to set in database
 		if err != nil {
 			key.RateLimitID = limitID //set in key object so that cache change is written by createData (see impl)
@@ -237,20 +171,19 @@ func (c *CacheDB) SetRateLimit(key *entities.Key, limitID string) error {
 }
 
 func (c *CacheDB) GetRateLimitData(rateLimitID string) (*entities.RateLimit, error) {
-	return retrieveData[*entities.RateLimit](c.rateLimitCache.C, rateLimitID, &c.rateLimitCache.RWMu, func() (*entities.RateLimit, error) {
+	return retrieveData[*entities.RateLimit](c.rateLimitCache, rateLimitID, func() (*entities.RateLimit, error) {
 		return c.db.GetRateLimitData(rateLimitID)
 	})
 }
 
 func (c *CacheDB) GetKeyRateLimitID(keyID string) (string, error) {
-	return retrieveData[string](c.rateLimitIDCache.C, keyID, &c.rateLimitIDCache.RWMu, func() (string, error) {
+	return retrieveData[string](c.rateLimitIDCache, keyID, func() (string, error) {
 		return c.db.GetKeyRateLimitID(keyID)
-
 	})
 }
 
 func (c *CacheDB) UpdateRateLimit(rateLimitID string, rateLimit *entities.RateLimit) error {
-	return createData[*entities.RateLimit](c.rateLimitCache.C, rateLimit, &c.rateLimitCache.RWMu, func() error {
+	return createData[*entities.RateLimit](c.rateLimitCache, rateLimit, func() error {
 		return c.db.UpdateRateLimit(rateLimitID, rateLimit)
 	})
 }
