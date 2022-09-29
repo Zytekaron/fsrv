@@ -3,7 +3,7 @@ package middleware
 import (
 	"context"
 	"fsrv/src/config"
-	"fsrv/src/database/dbutil"
+	"fsrv/src/database"
 	"fsrv/src/database/entities"
 	"fsrv/src/types"
 	"fsrv/src/types/response"
@@ -16,7 +16,7 @@ import (
 )
 
 // Auth verifies that the issuer a request has authority to take a given action on the resource in question
-func Auth(db dbutil.DBInterface, cfg *config.FileManager) gin.HandlerFunc {
+func Auth(db database.DBInterface, cfg *config.FileManager) gin.HandlerFunc {
 	root := cfg.Path
 	return func(ctx *gin.Context) {
 		c, cancel := context.WithTimeout(ctx, 10*time.Second)
@@ -26,7 +26,7 @@ func Auth(db dbutil.DBInterface, cfg *config.FileManager) gin.HandlerFunc {
 	}
 }
 
-func authHandler(ctx *gin.Context, db dbutil.DBInterface, root, path string) {
+func authHandler(ctx *gin.Context, db database.DBInterface, root, path string) {
 	dir := http.Dir(root)
 
 	//get resource data

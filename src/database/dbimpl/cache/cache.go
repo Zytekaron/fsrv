@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"fsrv/src/database/dbutil"
+	"fsrv/src/database"
 	"fsrv/src/database/entities"
 	"github.com/zyedidia/generic/cache"
 	"log"
@@ -19,7 +19,7 @@ type cacheMu[K comparable, V any] struct {
 }
 
 type CacheDB struct {
-	db               dbutil.DBInterface
+	db               database.DBInterface
 	resourceCache    cacheMu[string, tErr[*entities.Resource]]
 	keyCache         cacheMu[string, tErr[*entities.Key]]
 	roleCache        cacheMu[string, tErr[*entities.Role]]
@@ -77,7 +77,7 @@ func updateData[T taggedType](cache *cache.Cache[string, tErr[T]], mu *sync.RWMu
 	return nil
 }
 
-func NewCache(db dbutil.DBInterface) *CacheDB {
+func NewCache(db database.DBInterface) *CacheDB {
 	var cacheDB CacheDB
 	cacheDB.db = db
 	cacheDB.resourceCache = cacheMu[string, tErr[*entities.Resource]]{cache.New[string, tErr[*entities.Resource]](200), sync.RWMutex{}}

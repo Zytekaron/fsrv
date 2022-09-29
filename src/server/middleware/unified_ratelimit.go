@@ -6,8 +6,7 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"fsrv/src/config"
-	"fsrv/src/database/dberr"
-	"fsrv/src/database/dbutil"
+	"fsrv/src/database"
 	"fsrv/src/types/response"
 	"fsrv/utils"
 	"fsrv/utils/syncrl"
@@ -23,7 +22,7 @@ const keyAttemptRateLimitPurgeInterval = 10 * time.Minute
 const defaultKeyRateLimitPurgeInterval = 10 * time.Minute
 const validKeyRateLimitPurgeInterval = 10 * time.Minute
 
-func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.HandlerFunc {
+func UnifiedRateLimit(db database.DBInterface, serverConfig *config.Server) gin.HandlerFunc {
 	ipRLMgr := rl.NewSync(serverConfig.IPAnonymousRL.Limit, time.Duration(serverConfig.IPAnonymousRL.Reset))
 	keyAttemptRLMgr := rl.NewSync(serverConfig.KeyAuthAttemptRL.Limit, time.Duration(serverConfig.KeyAuthAttemptRL.Reset))
 	defaultKeyRLMgr := rl.NewSync(serverConfig.KeyAuthDefaultRL.Limit, time.Duration(serverConfig.KeyAuthDefaultRL.Reset))
@@ -48,7 +47,7 @@ func UnifiedRateLimit(db dbutil.DBInterface, serverConfig *config.Server) gin.Ha
 				//check if key and rate limit exists
 				rtLimID, err := db.GetKeyRateLimitID(keyID)
 				if err != nil {
-					if err == dberr.ErrKeyMissing {
+					if err == database.ErrKeyMissing {
 						//if key is invalid
 						ctx.AbortWithStatusJSON(403, response.Forbidden)
 						return

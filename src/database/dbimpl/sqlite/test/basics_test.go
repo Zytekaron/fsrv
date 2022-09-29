@@ -2,8 +2,8 @@ package test
 
 import (
 	"fmt"
+	"fsrv/src/database"
 	"fsrv/src/database/dbimpl/sqlite"
-	"fsrv/src/database/dbutil"
 	"fsrv/src/database/entities"
 	"fsrv/utils/serde"
 	"os"
@@ -12,7 +12,7 @@ import (
 	"time"
 )
 
-func getDB() dbutil.DBInterface {
+func getDB() database.DBInterface {
 	dbFileName := "FSRV_TEST_DATABASE.sqlite"
 	wd, err := os.Getwd()
 	if err != nil {
@@ -50,7 +50,7 @@ func bap(t *testing.T, errs ...error) {
 	}
 }
 
-func makeRoles(db dbutil.DBInterface) error {
+func makeRoles(db database.DBInterface) error {
 	roleTable := map[int]string{
 		100:  "stone",
 		200:  "iron",
@@ -71,7 +71,7 @@ func makeRoles(db dbutil.DBInterface) error {
 	return nil
 }
 
-func makeKeys(db dbutil.DBInterface) error {
+func makeKeys(db database.DBInterface) error {
 	k1 := entities.Key{
 		ID:      "key_q2w26DFu8dr5578x&4syd46e7",
 		Comment: "rock guy",
@@ -162,7 +162,7 @@ func makeKeys(db dbutil.DBInterface) error {
 	return nil
 }
 
-func makeResources(db dbutil.DBInterface) error {
+func makeResources(db database.DBInterface) error {
 	res := []*entities.Resource{
 		{
 			ID:          "res_stoneWorld:WYRSRYssysysySrysrur6i98",

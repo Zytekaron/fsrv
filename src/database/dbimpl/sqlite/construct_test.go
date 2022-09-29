@@ -2,7 +2,7 @@ package sqlite
 
 import (
 	"fmt"
-	"fsrv/src/database/dberr"
+	"fsrv/src/database"
 	"fsrv/src/database/entities"
 	"fsrv/src/types"
 	"fsrv/utils/serde"
@@ -341,5 +341,5 @@ func TestSQLite(t *testing.T) {
 	bap(t, giveRoles(t, db)...)
 	bap(t, takeRoles(t, db)...)
 	_, err = db.GetKeyRateLimitID("idontexist")
-	t.Logf("Correct Error? %t", err == dberr.ErrKeyMissing)
+	t.Logf("Correct Error? %t", err == database.ErrKeyMissing)
 }

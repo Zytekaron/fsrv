@@ -2,7 +2,7 @@ package server
 
 import (
 	"fsrv/src/config"
-	"fsrv/src/database/dbutil"
+	"fsrv/src/database"
 	"fsrv/src/server/handlers"
 	"fsrv/src/server/middleware"
 	"github.com/gin-gonic/gin"
@@ -10,11 +10,11 @@ import (
 )
 
 type Server struct {
-	Dbi dbutil.DBInterface
+	Dbi database.DBInterface
 	Cfg *config.Config
 }
 
-func New(DBInterface dbutil.DBInterface, config *config.Config) *Server {
+func New(DBInterface database.DBInterface, config *config.Config) *Server {
 	return &Server{DBInterface, config}
 }
 

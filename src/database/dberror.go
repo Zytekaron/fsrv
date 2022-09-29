@@ -1,4 +1,4 @@
-package dberr
+package database
 
 import "errors"
 

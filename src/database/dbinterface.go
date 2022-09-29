@@ -1,4 +1,4 @@
-package dbutil
+package database
 
 import (
 	"fsrv/src/database/entities"

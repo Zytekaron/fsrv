@@ -3,7 +3,7 @@ package sqlite
 import (
 	"database/sql"
 	"errors"
-	"fsrv/src/database/dberr"
+	"fsrv/src/database"
 	"fsrv/src/database/entities"
 	"fsrv/utils/serde"
 	"time"
@@ -166,7 +166,7 @@ func (sqlite *SQLiteDB) GetKeyRateLimitID(keyID string) (string, error) {
 		row = sqlite.qm.GetKeyIDIfExists.QueryRow(keyID)
 		err = row.Scan(&keyID)
 		if err == sql.ErrNoRows {
-			return keyID, dberr.ErrKeyMissing
+			return keyID, database.ErrKeyMissing
 		} else {
 			return "", err
 		}
