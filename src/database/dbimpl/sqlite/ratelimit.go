@@ -14,16 +14,7 @@ func (sqlite *SQLiteDB) CreateRateLimit(limit *entities.RateLimit) error {
 }
 
 func (sqlite *SQLiteDB) DeleteRateLimit(rateLimitID string) error {
-	tx, err := sqlite.db.Begin()
-	if err != nil {
-		return err
-	}
-	stmt := tx.Stmt(sqlite.qm.DelRateLimitByID)
-	_, err = stmt.Exec(rateLimitID)
-	if err != nil {
-		return err
-	}
-	return nil
+	return sqlite.deleteObjByID(sqlite.qm.DelRateLimitByID, rateLimitID)
 }
 
 func (sqlite *SQLiteDB) SetRateLimit(key *entities.Key, limitID string) error {
@@ -41,6 +32,7 @@ func (sqlite *SQLiteDB) SetRateLimit(key *entities.Key, limitID string) error {
 	return nil
 }
 
+// GetRateLimitData todo: wrap sql: error no rows
 func (sqlite *SQLiteDB) GetRateLimitData(ratelimitid string) (*entities.RateLimit, error) {
 	row := sqlite.qm.GetRateLimitDataByID.QueryRow(ratelimitid)
 	var rateLimit entities.RateLimit

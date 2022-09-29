@@ -30,8 +30,31 @@ func (sqlite *SQLiteDB) CreateResource(resource *entities.Resource) error {
 }
 
 func (sqlite *SQLiteDB) DeleteResource(id string) error {
-	//TODO implement me
-	panic("implement me")
+	//begin transaction
+	tx, err := sqlite.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	//delete associated permissions
+	stmt := tx.Stmt(sqlite.qm.DelPermissionByResourceID)
+	_, err = stmt.Exec(id)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+
+	//delete underlying resource
+	stmt = tx.Stmt(sqlite.qm.DelResourceByID)
+	_, err = stmt.Exec(id)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+
+	//commit
+	commitOrPanic(tx)
+	return nil
 }
 
 func (sqlite *SQLiteDB) GetResources(pageSize int, offset int) ([]*entities.Resource, error) {
