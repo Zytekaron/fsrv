@@ -23,9 +23,9 @@ const defaultKeyRateLimitPurgeInterval = 10 * time.Minute
 const validKeyRateLimitPurgeInterval = 10 * time.Minute
 
 func UnifiedRateLimit(db database.DBInterface, serverConfig *config.Server) gin.HandlerFunc {
-	ipRLMgr := rl.NewSync(serverConfig.IPAnonymousRL.Limit, time.Duration(serverConfig.IPAnonymousRL.Reset))
-	keyAttemptRLMgr := rl.NewSync(serverConfig.KeyAuthAttemptRL.Limit, time.Duration(serverConfig.KeyAuthAttemptRL.Reset))
-	defaultKeyRLMgr := rl.NewSync(serverConfig.KeyAuthDefaultRL.Limit, time.Duration(serverConfig.KeyAuthDefaultRL.Reset))
+	ipRLMgr := rl.NewSync(serverConfig.IPAnonymousRL.Limit, time.Duration(serverConfig.IPAnonymousRL.Refill))
+	keyAttemptRLMgr := rl.NewSync(serverConfig.KeyAuthAttemptRL.Limit, time.Duration(serverConfig.KeyAuthAttemptRL.Refill))
+	defaultKeyRLMgr := rl.NewSync(serverConfig.KeyAuthDefaultRL.Limit, time.Duration(serverConfig.KeyAuthDefaultRL.Refill))
 	keyRLSuite := syncrl.New()
 	utils.Executor(ipRateLimitPurgeInterval, ipRLMgr.Purge)
 	utils.Executor(keyAttemptRateLimitPurgeInterval, keyAttemptRLMgr.Purge)
@@ -82,7 +82,7 @@ func UnifiedRateLimit(db database.DBInterface, serverConfig *config.Server) gin.
 					}
 
 					//create and add bucket manager for rate limit level
-					keyBm = rl.NewSync(rateLimit.Limit, time.Duration(rateLimit.Reset))
+					keyBm = rl.NewSync(rateLimit.Limit, time.Duration(rateLimit.Refill))
 					keyRLSuite.Put(rtLimID, keyBm)
 				}
 
