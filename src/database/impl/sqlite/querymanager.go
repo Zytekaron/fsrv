@@ -170,11 +170,11 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.DelPermissionByResourceID, err = db.Prepare("DELETE FROM Permissions WHERE main.Permissions.resourceid = ?")
+	qm.DelPermissionByResourceID, err = db.Prepare("DELETE FROM Permissions WHERE resourceid = ?")
 	if err != nil {
 		return qm, err
 	}
-	qm.DelRPIEntryByRoleID, err = db.Prepare("DELETE FROM RolePermIntersect WHERE RolePermIntersect.roleid = ?")
+	qm.DelRPIEntryByRoleID, err = db.Prepare("DELETE FROM RolePermIntersect WHERE roleid = ?")
 	if err != nil {
 		return qm, err
 	}
@@ -190,12 +190,15 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 // todo: test
 func (qm *QueryManager) freePreparedQueries() error {
 	v := reflect.ValueOf(qm).Elem()
-	fcount := v.NumField()
+	count := v.NumField()
 
-	for i := 0; i < fcount; i++ {
+	for i := 0; i < count; i++ {
 		vi := v.Index(i)
 		if vi.Type().Name() == "*sql.Stmt" {
-			reflect.ValueOf(qm).Elem().Index(i).MethodByName("Close").Call([]reflect.Value{})
+			err := vi.Interface().(*sql.Stmt).Close()
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil
