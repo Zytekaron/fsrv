@@ -77,16 +77,22 @@ func updateData[T taggedType](cache *cache.Cache[string, tErr[T]], mu *sync.RWMu
 	return nil
 }
 
+func newCacheMu[K comparable, V any](cash *cache.Cache[K, V]) cacheMu[K, V] {
+	return cacheMu[K, V]{
+		C: cash,
+	}
+}
+
 func NewCache(db database.DBInterface) *CacheDB {
-	var cacheDB CacheDB
-	cacheDB.db = db
-	cacheDB.resourceCache = cacheMu[string, tErr[*entities.Resource]]{cache.New[string, tErr[*entities.Resource]](200), sync.RWMutex{}}
-	cacheDB.keyCache = cacheMu[string, tErr[*entities.Key]]{cache.New[string, tErr[*entities.Key]](1000), sync.RWMutex{}}
-	cacheDB.roleCache = cacheMu[string, tErr[*entities.Role]]{cache.New[string, tErr[*entities.Role]](25), sync.RWMutex{}}
-	cacheDB.rateLimitCache = cacheMu[string, tErr[*entities.RateLimit]]{cache.New[string, tErr[*entities.RateLimit]](500), sync.RWMutex{}}
-	cacheDB.rateLimitIDCache = cacheMu[string, tErr[string]]{cache.New[string, tErr[string]](50), sync.RWMutex{}}
-	cacheDB.tokenCache = cacheMu[string, tErr[*entities.Token]]{cache.New[string, tErr[*entities.Token]](25), sync.RWMutex{}}
-	return &cacheDB
+	return &CacheDB{
+		db:               db,
+		resourceCache:    newCacheMu(cache.New[string, tErr[*entities.Resource]](200)),
+		keyCache:         newCacheMu(cache.New[string, tErr[*entities.Key]](1000)),
+		roleCache:        newCacheMu(cache.New[string, tErr[*entities.Role]](25)),
+		rateLimitCache:   newCacheMu(cache.New[string, tErr[*entities.RateLimit]](500)),
+		rateLimitIDCache: newCacheMu(cache.New[string, tErr[string]](50)),
+		tokenCache:       newCacheMu(cache.New[string, tErr[*entities.Token]](25)),
+	}
 }
 
 func (c *CacheDB) CreateKey(key *entities.Key) error {
