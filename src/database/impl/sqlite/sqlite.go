@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"fsrv/src/database/dbimpl"
 	"fsrv/src/database/entities"
+	"fsrv/src/database/impl"
 )
 import _ "github.com/mattn/go-sqlite3"
 import _ "embed"
