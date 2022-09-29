@@ -28,7 +28,7 @@ func Create(cfg *config.Database) (database.DBInterface, error) {
 
 func createFile(path string) error {
 	dir := filepath.Dir(path)
-	if dir != "" {
+	if dir != "" && dir != "." {
 		s, err := os.Stat(dir)
 		if err != nil {
 			err := os.MkdirAll(dir, 0760)
