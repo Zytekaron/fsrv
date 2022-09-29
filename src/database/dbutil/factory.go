@@ -36,9 +36,8 @@ func createFile(path string) error {
 				return err
 			}
 		} else {
-			x := s.Mode()
-			m := os.FileMode(0760)
-			if x != m {
+			// require at least 770 (rwxrwx---)
+			if s.Mode()&0770 != 0770 {
 				return fs.ErrPermission
 			}
 		}
