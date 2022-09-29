@@ -11,6 +11,7 @@ require (
 )
 
 require (
+	github.com/go-playground/assert/v2 v2.0.1
 	github.com/pkg/xattr v0.4.8
 	github.com/zyedidia/generic v1.1.0
 	golang.org/x/exp v0.0.0-20220218215828-6cf2b201936e

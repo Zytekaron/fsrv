@@ -8,26 +8,23 @@ user = 'root'
 # the port to host the rest server on.
 port = 1337
 # secret used to validate that a key was actually issued by
-key_validation_secret = '+s4W$#6ES7dxXD57S$%*Se58'
+key_validation_secret=''
 # length of key data
-key_random_bytes = 32
+key_random_bytes=32
 # length of checksum portion of key
-key_checksum_bytes = 8
+key_checksum_bytes=8
 # rate limit for keys with no corresponding rate limit
-[server.auth_default_rl]
-limit = 5
-burst = 5
-refill = 5000000000
+[server.key_auth_default_rl]
+limit=5
+reset=5000000000
 # rate limit for attempting to authenticate with a key (valid limit > 0)
-[server.auth_attempt_rl]
-limit = 3
-burst = 3
-refill = 5000000000
+[server.key_auth_attempt_rl]
+limit=3
+reset=5000000000
 # rate limit for attempting to access a file anonymously
 [server.ip_anonymous_rl]
-limit = 1
-burst = 1
-refill = 5000000000
+limit=1
+reset=5000000000
 
 # this section is used to configure options
 # related to managing the files on disk.
@@ -49,7 +46,7 @@ max_depth = 32
 [database]
 # the path for the database folder.
 # it will be created if it does not exist.
-connection_string = '.database?cache=shared&mode=rwc&_journal_mode=WAL'
+path = './database'
 # the version number for the database.
 # do not modify this value unless updating
 # versions or using an existing database.

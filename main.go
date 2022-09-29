@@ -5,7 +5,7 @@ import (
 	"fsrv/src/database/dbutil"
 	"fsrv/src/database/impl/cache"
 	"fsrv/src/filemanager"
-	"fsrv/src/server"
+	"fsrv/src/server/files"
 	"log"
 	"strconv"
 )
@@ -36,7 +36,7 @@ func main() {
 	fm := filemanager.New(cfg.FileManager)
 
 	// setup server
-	serv := server.New(cfg, db, fm)
+	serv := files.New(cfg, db, fm)
 
 	// begin server
 	addr := ":" + strconv.Itoa(int(cfg.Server.Port))
