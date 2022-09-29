@@ -3,6 +3,7 @@ package server
 import (
 	"fsrv/src/config"
 	"fsrv/src/database"
+	"fsrv/src/filemanager"
 	"fsrv/src/server/handlers"
 	"fsrv/src/server/middleware"
 	"github.com/gin-gonic/gin"
@@ -10,19 +11,25 @@ import (
 )
 
 type Server struct {
-	Dbi database.DBInterface
-	Cfg *config.Config
+	config      *config.Config
+	database    database.DBInterface
+	fileManager *filemanager.FileManager
 }
 
-func New(DBInterface database.DBInterface, config *config.Config) *Server {
-	return &Server{DBInterface, config}
+func New(cfg *config.Config, db database.DBInterface, fm *filemanager.FileManager) *Server {
+	return &Server{
+		config:      cfg,
+		database:    db,
+		fileManager: fm,
+	}
 }
 
 func (s *Server) Start(addr string) error {
 	r := gin.Default()
-	r.Use(middleware.UnifiedRateLimit(s.Dbi, s.Cfg.Server))
-	r.Use(middleware.Auth(s.Dbi, s.Cfg.FileManager))
+	r.Use(middleware.GetIP())
+	r.Use(middleware.UnifiedRateLimit(s.database, s.config.Server))
+	r.Use(middleware.Auth(s.database, s.config.FileManager))
 
-	handlers.New().Register(r)
+	handlers.New(s.database, s.fileManager).Register(r)
 	return http.ListenAndServe(addr, r)
 }

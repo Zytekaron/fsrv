@@ -1,7 +1,12 @@
 package handlers
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+)
 
-func (h *Handler) Get(ctx *gin.Context) {
+// Get represents a request to read the contents of a file
+func (h *Handler) Get() gin.HandlerFunc {
+	return func(ctx *gin.Context) {
 
+	}
 }
