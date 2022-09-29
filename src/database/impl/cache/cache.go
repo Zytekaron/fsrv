@@ -1,6 +1,7 @@
 package cache
 
 import (
+	"fsrv/src/config"
 	"fsrv/src/database"
 	"fsrv/src/database/entities"
 	"github.com/zyedidia/generic/cache"
@@ -16,11 +17,12 @@ type CacheDB struct {
 	tokenCache       *mutexCache[string, result[*entities.Token]] // todo: build out infrastructure for tokens
 }
 
-func NewCache(db database.DBInterface) *CacheDB {
+func NewCache(cfg *config.Cache, db database.DBInterface) *CacheDB {
+	// todo: add more cache size fields to *config.Cache
 	return &CacheDB{
 		db:               db,
 		resourceCache:    newMutexCache(cache.New[string, result[*entities.Resource]](200)),
-		keyCache:         newMutexCache(cache.New[string, result[*entities.Key]](1000)),
+		keyCache:         newMutexCache(cache.New[string, result[*entities.Key]](cfg.Keys)),
 		roleCache:        newMutexCache(cache.New[string, result[*entities.Role]](25)),
 		rateLimitCache:   newMutexCache(cache.New[string, result[*entities.RateLimit]](500)),
 		rateLimitIDCache: newMutexCache(cache.New[string, result[string]](50)),
