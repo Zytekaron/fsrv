@@ -4,7 +4,8 @@
 
 .env
 
-config.yml
+test
+
 config.toml
 
 *.exe
