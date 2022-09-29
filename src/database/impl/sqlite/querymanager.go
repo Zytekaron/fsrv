@@ -170,11 +170,11 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.DelPermissionByResourceID, err = db.Prepare("DELETE FROM Permissions WHERE main.Permissions.resourceid = ?")
+	qm.DelPermissionByResourceID, err = db.Prepare("DELETE FROM Permissions WHERE resourceid = ?")
 	if err != nil {
 		return qm, err
 	}
-	qm.DelRPIEntryByRoleID, err = db.Prepare("DELETE FROM RolePermIntersect WHERE RolePermIntersect.roleid = ?")
+	qm.DelRPIEntryByRoleID, err = db.Prepare("DELETE FROM RolePermIntersect WHERE roleid = ?")
 	if err != nil {
 		return qm, err
 	}
