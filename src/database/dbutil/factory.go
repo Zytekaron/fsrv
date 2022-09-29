@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fsrv/src/config"
 	"fsrv/src/database"
-	"fsrv/src/database/dbimpl/sqlite"
+	"fsrv/src/database/impl/sqlite"
 )
 
 func Create(cfg *config.Database) (database.DBInterface, error) {
