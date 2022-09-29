@@ -5,10 +5,10 @@ import (
 )
 
 type RateLimit struct {
-	ID    string         `json:"id" toml:"id"`
-	Limit int            `json:"limit" toml:"limit"`
-	Burst int            `json:"burst" toml:"burst"`
-	Reset serde.Duration `json:"reset" toml:"reset"`
+	ID     string         `json:"id" toml:"id"`
+	Limit  int64          `json:"limit" toml:"limit"`
+	Burst  int64          `json:"burst" toml:"burst"`
+	Refill serde.Duration `json:"refill" toml:"refill"`
 }
 
 func (p *RateLimit) GetID() string {
