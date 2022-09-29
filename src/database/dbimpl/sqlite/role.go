@@ -30,8 +30,31 @@ func (sqlite *SQLiteDB) CreateRole(role *entities.Role) error {
 }
 
 func (sqlite *SQLiteDB) DeleteRole(name string) error {
-	//TODO implement me
-	panic("implement me")
+	//begin transaction
+	tx, err := sqlite.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	//delete associated RolePermIntersect entries
+	stmt := tx.Stmt(sqlite.qm.DelRPIEntryByRoleID)
+	_, err = stmt.Exec(name)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+
+	//delete underlying role
+	stmt = tx.Stmt(sqlite.qm.DelRoleByID)
+	_, err = stmt.Exec(name)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+
+	//commit
+	commitOrPanic(tx)
+	return nil
 }
 
 func (sqlite *SQLiteDB) GetRoles(pageSize int, offset int) ([]string, error) {

@@ -71,8 +71,7 @@ func (sqlite *SQLiteDB) CreateKey(key *entities.Key) error {
 }
 
 func (sqlite *SQLiteDB) DeleteKey(id string) error {
-	//TODO implement me
-	panic("implement me")
+	return sqlite.deleteObjByID(sqlite.qm.DelKeyByID, id)
 }
 
 func (sqlite *SQLiteDB) GetKeys(pageSize int, offset int) ([]*entities.Key, error) {

@@ -34,6 +34,11 @@ type QueryManager struct {
 	UpdKeyRateLimitID                            *sql.Stmt
 	DelPermissionByID                            *sql.Stmt
 	DelRateLimitByID                             *sql.Stmt
+	DelKeyByID                                   *sql.Stmt
+	DelResourceByID                              *sql.Stmt
+	DelRoleByID                                  *sql.Stmt
+	DelPermissionByResourceID                    *sql.Stmt
+	DelRPIEntryByRoleID                          *sql.Stmt
 }
 
 //go:embed readqueries/getResourceRoles.sql
@@ -49,7 +54,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.InsRateLimitData, err = db.Prepare("INSERT INTO Ratelimits (ratelimitid, requests, reset) VALUES (?, ?, ?)") //CreateKey
+	qm.InsRateLimitData, err = db.Prepare("INSERT INTO Ratelimits (ratelimitid, requests, burst, reset) VALUES (?, ?, ?, ?)") //CreateKey
 	if err != nil {
 		return qm, err
 	}
@@ -91,7 +96,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.GetRateLimitDataByID, err = db.Prepare("SELECT requests, reset FROM Ratelimits WHERE ratelimitid = ?") //GetKeyData
+	qm.GetRateLimitDataByID, err = db.Prepare("SELECT requests, burst, reset FROM Ratelimits WHERE ratelimitid = ?") //GetKeyData
 	if err != nil {
 		return qm, err
 	}
@@ -135,7 +140,7 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 	if err != nil {
 		return qm, err
 	}
-	qm.UpdRateLimitData, err = db.Prepare("UPDATE Ratelimits SET ratelimitid = ?, requests=?, requests = ? WHERE ratelimitid = ?")
+	qm.UpdRateLimitData, err = db.Prepare("UPDATE Ratelimits SET ratelimitid = ?, requests = ?, burst = ?, reset = ? WHERE ratelimitid = ?")
 	if err != nil {
 		return qm, err
 	}
@@ -150,6 +155,29 @@ func NewQueryManager(db *sql.DB) (qm *QueryManager, err error) {
 		return qm, err
 	}
 	qm.DelRateLimitByID, err = db.Prepare("DELETE FROM Ratelimits WHERE ratelimitid = ?") //DeleteRateLimit
+	if err != nil {
+		return qm, err
+	}
+	qm.DelKeyByID, err = db.Prepare("DELETE FROM Keys WHERE keyid = ?") //DeleteKey
+	if err != nil {
+		return qm, err
+	}
+	qm.DelResourceByID, err = db.Prepare("DELETE FROM Resources WHERE resourceid = ?")
+	if err != nil {
+		return qm, err
+	}
+	qm.DelRoleByID, err = db.Prepare("DELETE FROM Roles WHERE roleid = ?")
+	if err != nil {
+		return qm, err
+	}
+	qm.DelPermissionByResourceID, err = db.Prepare("DELETE FROM Permissions WHERE main.Permissions.resourceid = ?")
+	if err != nil {
+		return qm, err
+	}
+	qm.DelRPIEntryByRoleID, err = db.Prepare("DELETE FROM RolePermIntersect WHERE RolePermIntersect.roleid = ?")
+	if err != nil {
+		return qm, err
+	}
 
 	//qm.q, err = db.Prepare("")
 	//if err != nil {

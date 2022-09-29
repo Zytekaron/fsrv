@@ -291,7 +291,7 @@ func getRatelimitsForAllKeys(t *testing.T, db *SQLiteDB, ids []string) (errs []e
 		if err != nil {
 			errs = append(errs, err)
 		} else {
-			t.Logf("KeyID: %s, ratelimit:{id:%s, lim:%d, reset:%d }", id, lim.ID, lim.Limit, lim.Reset)
+			t.Logf("KeyID: %s, ratelimit:{id:%s, lim:%d, reset:%d }", id, lim.ID, lim.Limit, lim.Refill)
 		}
 	}
 	return errs

@@ -219,3 +219,22 @@ func getNParams(paramFormat string, n int) string {
 
 	return queryParams
 }
+
+func (sqlite *SQLiteDB) deleteObjByID(stmt *sql.Stmt, args ...any) error {
+	//begin transaction
+	tx, err := sqlite.db.Begin()
+	if err != nil {
+		return err
+	}
+
+	//run delete statement in transaction
+	txStmt := tx.Stmt(stmt)
+	_, err = txStmt.Exec(args)
+	if err != nil {
+		rollbackOrPanic(tx)
+		return err
+	}
+
+	commitOrPanic(tx)
+	return nil
+}
