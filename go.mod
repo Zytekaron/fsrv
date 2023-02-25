@@ -7,7 +7,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.14
 	github.com/pelletier/go-toml v1.9.5
 	github.com/zytekaron/gorl v0.1.0
-	golang.org/x/sys v0.0.0-20220408201424-a24fb2fb8a0f // indirect
+	golang.org/x/sys v0.1.0 // indirect
 )
 
 require (
